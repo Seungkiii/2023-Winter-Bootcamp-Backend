@@ -33,6 +33,8 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    #------내가 추가--------------
+    path('', include('interviews.urls')),
 
     # path("api/interviews", ),
     # path("api/interviews/", include("interviews.urls")),

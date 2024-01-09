@@ -37,7 +37,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY . .
 
-RUN chown -R appuser:appuser .
+#RUN chown -R appuser:appuser .
+RUN mkdir static && chown -R appuser:appuser static
 
 USER appuser
 

@@ -14,8 +14,8 @@ services:
       - redis
     networks:
       - mynetwork
-    volumes:
-      - ./:/usr/src/app
+    # volumes:
+    #   - ./:/usr/src/app
 
   mysql:
     container_name: mysql
