@@ -14,7 +14,7 @@ class Interview(BaseModel):
          ('Video', 'Video Interview'),
         ('Voice', 'Voice Interview'),
        ('Text', 'Text Interview'),
-   ]
+    ]
     
     style = models.CharField(max_length=10, choices=STYLE_CHOICES)
     
@@ -22,7 +22,7 @@ class Interview(BaseModel):
         ('frontend', 'Frontend'),
         ('backend', 'Backend'),
          ('fullstack', 'FUllstack'),
-     ]
+    ]
     
     position = models.CharField(max_length=10, choices=POSITION_CHOICES)
 
