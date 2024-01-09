@@ -26,6 +26,11 @@ schema_view = get_schema_view(
     openapi.Info(
         title="TeamA API",
         default_version="v1",
+        description="API documentation for Your Project",
+        terms_of_service="https://www.yourproject.com/policies/terms/",
+        contact=openapi.Contact(email="contact@yourproject.local"),
+        license=openapi.License(name="Your Project License"),
+
     ),
     public=True,
     permission_classes=[permissions.AllowAny],

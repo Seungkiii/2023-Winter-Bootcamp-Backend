@@ -1,5 +1,7 @@
 from django.core.files.storage import default_storage
-from rest_framework import generics, status
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import generics, status, serializers
 from rest_framework.response import Response
 from .models import Resume
 from .serializers import ResumeSerializer
@@ -12,8 +14,17 @@ import io
 class ResumeCreate(generics.CreateAPIView):
     queryset = Resume.objects.all()
     serializer_class = ResumeSerializer
+    http_method_names = ['post']
 
-    def create(self, request, *args, **kwargs):
+    @swagger_auto_schema(operation_description="이력서를 생성하고 PDF 파일을 업로드합니다.",
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             properties={
+                                 'file': openapi.Schema(type=openapi.TYPE_FILE, description='PDF file'),
+                             }
+                         ),
+                         responses={201: openapi.Response('Created', ResumeSerializer)})
+    def post(self, request, *args, **kwargs):
         # file = None
         # for key, value in request.FILES.items():
         #     if hasattr(value, 'read'):
@@ -50,13 +61,23 @@ class ResumeCreate(generics.CreateAPIView):
 class ResumeList(generics.ListAPIView):
     queryset = Resume.objects.filter(is_deleted=False)  # is_deleted가 False인 객체만 가져옵니다.
     serializer_class = ResumeSerializer
+    http_method_names = ['get']
+
+    @swagger_auto_schema(operation_description="이력서 리스트를 반환합니다.")
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
-#이력서 삭제하는 뷰
-class ResumeDelete(generics.UpdateAPIView):  # DestroyAPIView 대신 UpdateAPIView를 사용합니다.
+class EmptySerializer(serializers.Serializer):
+    pass
+#이력서 삭제 뷰
+class ResumeDelete(generics.UpdateAPIView):
     queryset = Resume.objects.all()
     lookup_field = 'id'
+    serializer_class = EmptySerializer
+    http_method_names = ['delete']
 
+    @swagger_auto_schema(operation_description="특정 이력서를 삭제합니다.")
     def delete(self, request, *args, **kwargs):
         resume = self.get_object()
         resume.is_deleted = True
