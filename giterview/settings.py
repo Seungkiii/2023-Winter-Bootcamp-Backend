@@ -108,6 +108,7 @@ INSTALLED_APPS = [
 
     "interviews",
     "resumes",
+    "users",
     # "forms",
     # "users",
     # "speak_to_chat",
