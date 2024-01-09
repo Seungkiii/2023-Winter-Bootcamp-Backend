@@ -13,6 +13,11 @@ class PositionType(Enum):
   BACKEND = 'backend'
   FULLSTACK = 'fullstack'
   
+class QuestionType(Enum):
+  PROJECT = 'project'
+  CS = 'cs'
+  PERSONALITY = 'personality'
+  
 class Interview(BaseModel):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   resume = models.IntegerField()
@@ -27,10 +32,10 @@ class Type_Choice(models.Model):
   interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
   interview_type = models.ForeignKey(Interview_Type, on_delete=models.CASCADE)
   
-
 class Question(BaseModel):
   interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
   content = models.CharField(max_length=255)
+  question_type = models.CharField(max_length=11, choices=[(tag.value, tag.name) for tag in QuestionType])
   
 class Answer(BaseModel):
   question = models.OneToOneField(Question, on_delete=models.CASCADE)
