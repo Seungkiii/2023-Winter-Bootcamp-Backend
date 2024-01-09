@@ -48,6 +48,11 @@ ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1", "giterview.site"]
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',  # 파일 업로드를 위한 설정
     )
 }
 
@@ -92,7 +97,7 @@ INSTALLED_APPS = [
     "rest_framework",
 
     # "daphne",
-    # "storages",
+    "storages",
 
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -116,7 +121,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    #"django.middleware.csrf.CsrfViewMiddleware", 개발할때만 주석처리 나중에 폼 헤더 아래 {% csrf_token %}추가
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -237,3 +242,29 @@ STATIC_ROOT = "static/"
 
 # # # 기본 스토리지를 S3 스토리지로 설정
 # # DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+
+# AWS_REGION = 'ap-northeast-2'
+# AWS_STORAGE_BUCKET_NAME = "bucketkubit"
+# AWS_ACCESS_KEY_ID = get_secret("aws_access_key_id")
+# AWS_SECRET_ACCESS_KEY = get_secret("aws_secret_access_key")
+# AWS_S3_CUSTOM_DOMAIN = '%s.s3.%s.amazonaws.com' % (AWS_STORAGE_BUCKET_NAME, AWS_REGION)
+# STATIC_URL = "http://%s/static/" % AWS_S3_CUSTOM_DOMAIN
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# MEDIA_URL = "http://%s/media/" % AWS_S3_CUSTOM_DOMAIN
+
+# AWS 접근 설정
+AWS_ACCESS_KEY_ID = r'AKIA4QWKYGI3IPJU43MW'  # 발급받은 액세스 키
+AWS_SECRET_ACCESS_KEY = 'mQHcma3wouyr/QJy0HQ/DjalfmQY/N7TFAJMIIhi'  # 발급받은 시크릿 키
+AWS_REGION = 'ap-northeast-2'  # AWS 리전 정보 (예: 'ap-northeast-2'는 서울 리전)
+
+# S3 설정
+AWS_STORAGE_BUCKET_NAME = 'resume7946'  # 사용할 S3 버킷 이름
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com'
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+AWS_LOCATION = 'pre_image_url/'  # S3 내의 저장할 위치 (폴더 이름)
+
+# Django가 사용할 기본 파일 스토리지 설정
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

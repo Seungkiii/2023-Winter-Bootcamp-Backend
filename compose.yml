@@ -30,7 +30,7 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     ports:
-      - 3306:3306
+      - 3307:3306
       
   celery:
     container_name: celery_worker

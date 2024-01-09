@@ -26,6 +26,11 @@ schema_view = get_schema_view(
     openapi.Info(
         title="TeamA API",
         default_version="v1",
+        description="API documentation for Your Project",
+        terms_of_service="https://www.yourproject.com/policies/terms/",
+        contact=openapi.Contact(email="contact@yourproject.local"),
+        license=openapi.License(name="Your Project License"),
+
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
@@ -35,15 +40,13 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/interviews/", include("interviews.urls")),
 
-    # path("api/interviews", ),
-    # path("api/resumes", include("resumes.urls")),
-    # path("api/resumes/", include("resumes.urls")),
+    path("api/resumes/", include("resumes.urls")),
 
-    # path("api/health", health_check.as_view(), name="health-check"),
+    #path("api/health", health_check.as_view(), name="health-check"),
     
-    # path("", include("django_prometheus.urls")),
+    #path("", include("django_prometheus.urls")),
 
-    # path("api/", include("speak_to_chat.urls")),
+    #path("api/", include("speak_to_chat.urls")),
 ]
 
 urlpatterns += [
