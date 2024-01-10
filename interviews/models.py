@@ -22,8 +22,9 @@ class Interview(BaseModel):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   resume = models.IntegerField()
   title = models.CharField(max_length=255)
-  style = models.CharField(max_length=5, choices=[(tag.value, tag.name) for tag in InterviewStyle])
-  position = models.CharField(max_length=9, choices=[(tag.value, tag.name) for tag in PositionType])
+  style = models.CharField(max_length=5, choices=[(tag.value, tag.name) for tag in InterviewStyle]) # 화상면접/음성면접/텍스트면접
+  position = models.CharField(max_length=9, choices=[(tag.value, tag.name) for tag in PositionType]) #백엔드,프론트엔드,풀스택
+ 
   
 class Interview_Type(models.Model):
   type_name = models.CharField(max_length=20)

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Interview_Type, Question, Interview, Type_Choice
+#from .models import Interview_Type, Question, Interview, Type_Choice
+from .models import Interview
 
 # 질문 목록 조회 Serializer    
 # class QuestionListSerializer(serializers.ModelSerializer):
@@ -18,20 +19,31 @@ from .models import Interview_Type, Question, Interview, Type_Choice
 #     question = Question.objects.get(interview=obj)
 #     return question.content if question else None
 
-# 질문 목록 조회 Serializer
-class QuestionListSerializer(serializers.ModelSerializer):
-  questions = serializers.SerializerMethodField()
+
+#----------------------------------------------------------
+#질문 목록 조회 Serializer
+# class QuestionListSerializer(serializers.ModelSerializer):
+#   questions = serializers.SerializerMethodField()
   
-  class Meta:
-    model = Interview
-    fields = ['questions']
+#   class Meta:
+#     model = Interview
+#     fields = ['questions']
     
-  def get_questions(self, obj):
-    questions = Question.objects.filter(interview=obj)
-    return [{
-      'type_name': self.get_type_name_for_question(question),
-      'content': question.content
-    } for question in questions]
+#   def get_questions(self, obj):
+#     questions = Question.objects.filter(interview=obj)
+#     return [{
+#       'type_name': self.get_type_name_for_question(question),
+#       'content': question.content
+#     } for question in questions]
   
-  def get_type_name_for_question(self, question):
-    return question.question_type
+#   def get_type_name_for_question(self, question):
+#     return question.question_type
+
+#------------------------------------------------------------------
+
+
+class InterviewSerializer(serializers.ModelSerializer):
+  class Meta:
+    model=Interview
+    fields=['id','user','resume','title','style','position']
+
