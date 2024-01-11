@@ -1,7 +1,7 @@
 from rest_framework import serializers
 #from .models import Interview_Type, Question, Interview, Type_Choice
 from .models import Interview
-
+from users.models import User
 # 질문 목록 조회 Serializer    
 # class QuestionListSerializer(serializers.ModelSerializer):
 #   type_name = serializers.SerializerMethodField()
@@ -42,8 +42,15 @@ from .models import Interview
 #------------------------------------------------------------------
 
 
-class InterviewSerializer(serializers.ModelSerializer):
+class InterviewCreateSerializer(serializers.ModelSerializer):
   class Meta:
     model=Interview
-    fields=['id','user','resume','title','style','position']
+    fields=['title', 'style', 'position', 'resume', 'repo_name']
+
+class InterviewSerializer(serializers.ModelSerializer):
+ 
+  class Meta:
+    model=Interview
+    fields=["id","title","created_at"]
+    
 
