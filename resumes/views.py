@@ -10,7 +10,7 @@ import logging
 
 import io
 
-#파일 업로드 처리 뷰
+
 class ResumeCreate(generics.CreateAPIView):
     queryset = Resume.objects.all()
     serializer_class = ResumeSerializer
@@ -21,40 +21,37 @@ class ResumeCreate(generics.CreateAPIView):
                              type=openapi.TYPE_OBJECT,
                              properties={
                                  'file': openapi.Schema(type=openapi.TYPE_FILE, description='PDF file'),
+                                 'user_id': openapi.Schema(type=openapi.TYPE_STRING, description='User ID'),
                              }
                          ),
                          responses={201: openapi.Response('Created', ResumeSerializer)})
     def post(self, request, *args, **kwargs):
-        # file = None
-        # for key, value in request.FILES.items():
-        #     if hasattr(value, 'read'):
-        #         file = value
-        #         break
-        #
-        # if not file:
-        #     return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
         file = request.FILES.get('file')
-        if not file:
-            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        user_id = request.data.get('user_id')
+
+        if not file or not user_id:
+            return Response({'error': 'File or user ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         pdf = PdfReader(file)
         text_contents = ""
         for page in pdf.pages:
             text_contents += page.extract_text()
 
-        #파일을 S3에 업로드하고 URL을 가져옵니다.
+        # 파일을 S3에 업로드하고 URL을 가져옵니다.
         file_name = default_storage.save('pdfs/' + file.name, file)
         image_url = default_storage.url(file_name)
 
         data = {
             'text_contents': text_contents,
             'image_url': image_url,
+            'user_id': user_id,
         }
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(status=status.HTTP_201_CREATED, headers=headers)
 
 
 #이력서 리스트 보여주는 뷰
