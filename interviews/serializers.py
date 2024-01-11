@@ -56,3 +56,8 @@ class AnswerCreateSerializer(serializers.ModelSerializer):
     validated_data['record_url'] = record_url
 
     return super().create(validated_data)
+  #Response에 변환된 url 보여주기
+  def to_representation(self, instance):
+    ret = super().to_representation(instance)
+    ret['record_url'] = instance.record_url  # 변환된 URL로 변경
+    return ret
