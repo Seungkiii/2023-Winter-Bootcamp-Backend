@@ -12,7 +12,7 @@ services:
     networks:
       - mynetwork
     ports:
-      - 3307:3306
+      - 3306:3306
 
   webapp:
     container_name: web_app
