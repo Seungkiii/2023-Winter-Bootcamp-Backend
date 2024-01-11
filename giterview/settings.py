@@ -28,8 +28,6 @@ SECRET_KEY = AWSManager.get_secret("DJANGO")["SECRET_KEY"]
 # HOST = os.environ.get("HOST_IP")
 # HOST = "0.0.0.0"
 
-import os
-
 # env = os.environ.Env(
 #     DEBUG=(bool, False)
 # )
@@ -116,7 +114,7 @@ INSTALLED_APPS = [
     # "forms",
     # "users",
     # "speak_to_chat",
-    
+
     # "corsheaders",
 ]
 
@@ -156,11 +154,11 @@ db_secret = AWSManager.get_secret("MYSQL")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": db_secret["DATABASE"],
-        "USER": db_secret["USER"],
-        "PASSWORD": db_secret["PASSWORD"],
-        "HOST": db_secret["HOST"],
-        "PORT": db_secret["PORT"],
+        "NAME": os.getenv("MYSQL_DATABASE"),
+        "USER": os.getenv("MYSQL_USER"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+        "HOST": 'mysql',
+        "PORT": os.getenv("MYSQL_PORT"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
