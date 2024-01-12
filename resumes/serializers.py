@@ -5,7 +5,7 @@ from .models import Resume
 class ResumeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Resume
-        fields = ['id', 'image_url', 'created_at']
+        fields = ['id', 'pre_image_url','title', 'created_at']
 
     def create(self, validated_data):
         # image_url이 validated_data에 포함되어 있음을 가정

@@ -85,3 +85,6 @@ wcwidth==0.2.6
 yarl==1.9.2
 #zope.event==5.0
 #zope.interface==6.0
+pillow~=10.2.0
+Faker~=22.2.0
+PyMuPDF==1.23.10
