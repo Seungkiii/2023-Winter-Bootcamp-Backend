@@ -76,3 +76,11 @@ class AnswerCreateSerializer(serializers.ModelSerializer):
     ret = super().to_representation(instance)
     ret['record_url'] = instance.record_url  # 변환된 URL로 변경
     return ret
+  
+# 면접 목록 조회 Serializer
+class InterviewListSerializer(serializers.ModelSerializer):
+  
+  
+  class Meta:
+    model = Interview
+    fields = ['id', 'title']
