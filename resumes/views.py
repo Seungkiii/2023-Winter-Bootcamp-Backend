@@ -26,19 +26,20 @@ class ResumeCreate(generics.CreateAPIView):
                          ),
                          responses={201: openapi.Response('Created', ResumeSerializer)})
     def post(self, request, *args, **kwargs):
-        file = request.FILES.get('file')
         user_id = request.data.get('user_id')
+        img_file = request.FILES.get('img_file')
+        pdf_file = request.FILES.get('pdf_file')
 
-        if not file or not user_id:
-            return Response({'error': 'File or user ID not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if not img_file or not user_id or not pdf_file:
+            return Response({'error': 'img file or user ID or pdf file not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-        pdf = PdfReader(file)
+        pdf = PdfReader(pdf_file)
         text_contents = ""
         for page in pdf.pages:
             text_contents += page.extract_text()
 
         # 파일을 S3에 업로드하고 URL을 가져옵니다.
-        file_name = default_storage.save('pdfs/' + file.name, file)
+        file_name = default_storage.save('imgs/' + img_file.name, img_file)
         image_url = default_storage.url(file_name)
 
         data = {
