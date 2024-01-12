@@ -42,3 +42,6 @@ class Answer(BaseModel):
   content = models.CharField(max_length=255)
   record_url = models.URLField(max_length=500)
 
+class Repository(BaseModel):
+  interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
+  repo_name = models.CharField(max_length=255)
