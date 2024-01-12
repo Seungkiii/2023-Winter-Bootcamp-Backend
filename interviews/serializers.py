@@ -1,25 +1,40 @@
 from rest_framework import serializers
-from .models import Interview_Type, Question, Interview, Type_Choice, Answer
+from .models import Interview_Type, Question, Interview, Type_Choice, Answer, Repository
 from .utils import handle_uploaded_file_s3
 
-
-# 질문 목록 조회 Serializer
-# class QuestionListSerializer(serializers.ModelSerializer):
-#   type_name = serializers.SerializerMethodField()
-#   content = serializers.SerializerMethodField()
-
-#   class Meta:
-#     model = Interview
-#     fields = ['type_name', 'content']
+# 면접 결과 조회 Serializer
+class InterviewResultSerializer(serializers.ModelSerializer):
+  repo_names = serializers.SerializerMethodField()
+  interview_type_names = serializers.SerializerMethodField()
+  questions = serializers.SerializerMethodField()
+  answers = serializers.SerializerMethodField()
+  
+  class Meta:
+    model = Interview
+    fields = ['title','interview_type_names', 'position', 'style', 'resume', 'repo_names', 'questions', 'answers']
+  
+  def get_repo_names(self, obj):
+    repositories = Repository.objects.filter(interview=obj)
+    return [repo.repo_name for repo in repositories]
+  
+  def get_interview_type_names(self, obj):
+    type_choices = Type_Choice.objects.filter(interview=obj)
+    if type_choices.exists():
+      return [tc.interview_type.type_name for tc in type_choices]
+    return []
+  
+  def get_questions(self, obj):
+    questions_list_serializer = QuestionListSerializer(instance=obj)
+    return questions_list_serializer.get_questions(obj)
+  
+  def get_answers(self, obj):
+    questions = Question.objects.filter(interview=obj)
+    answers = Answer.objects.filter(question__in=questions)
+    return [{
+      'content': answer.content,
+      'record_url': answer.record_url
+    } for answer in answers]
     
-#   def get_type_name(self, obj):
-#     type_name = Type_Choice.objects.get(interview=obj)
-#     return type_name.interview_type.type_name if type_name else None
-
-#   def get_content(self, obj):
-#     question = Question.objects.get(interview=obj)
-#     return question.content if question else None
-
 # 질문 목록 조회 Serializer
 class QuestionListSerializer(serializers.ModelSerializer):
   questions = serializers.SerializerMethodField()
