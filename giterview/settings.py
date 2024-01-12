@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from common.aws import AWSManager
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,8 +27,6 @@ SECRET_KEY = AWSManager.get_secret("DJANGO")["SECRET_KEY"]
 
 # HOST = os.environ.get("HOST_IP")
 # HOST = "0.0.0.0"
-
-import os
 
 # env = os.environ.Env(
 #     DEBUG=(bool, False)
@@ -152,11 +154,11 @@ db_secret = AWSManager.get_secret("MYSQL")
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": db_secret["DATABASE"],
-        "USER": db_secret["USER"],
-        "PASSWORD": db_secret["PASSWORD"],
-        "HOST": db_secret["HOST"],
-        "PORT": db_secret["PORT"],
+        "NAME": os.getenv("MYSQL_DATABASE"),
+        "USER": os.getenv("MYSQL_USER"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+        "HOST": 'mysql',
+        "PORT": os.getenv("MYSQL_PORT"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
@@ -254,8 +256,8 @@ STATIC_ROOT = "static/"
 # MEDIA_URL = "http://%s/media/" % AWS_S3_CUSTOM_DOMAIN
 
 # AWS 접근 설정
-AWS_ACCESS_KEY_ID = r'AKIA4QWKYGI3IPJU43MW'  # 발급받은 액세스 키
-AWS_SECRET_ACCESS_KEY = 'mQHcma3wouyr/QJy0HQ/DjalfmQY/N7TFAJMIIhi'  # 발급받은 시크릿 키
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = 'ap-northeast-2'  # AWS 리전 정보 (예: 'ap-northeast-2'는 서울 리전)
 
 # S3 설정
@@ -268,3 +270,10 @@ AWS_LOCATION = 'pre_image_url/'  # S3 내의 저장할 위치 (폴더 이름)
 
 # Django가 사용할 기본 파일 스토리지 설정
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# from storages.backends.s3boto3 import S3Boto3Storage
+#
+# class AudioS3Boto3Storage(S3Boto3Storage):
+#     location = 'audio/'  # 새로운 위치 설정
+
+

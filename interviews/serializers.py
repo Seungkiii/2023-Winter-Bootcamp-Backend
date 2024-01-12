@@ -42,10 +42,26 @@ from users.models import User
 #------------------------------------------------------------------
 
 
+# class InterviewCreateSerializer(serializers.ModelSerializer):
+#   repo_name = serializers.CharField(max_length=255)
+#   class Meta:
+#     model=Interview
+#     fields=['title', 'style', 'position', 'resume', 'repo_name']
+
+
+
+# serializers.py
 class InterviewCreateSerializer(serializers.ModelSerializer):
-  class Meta:
-    model=Interview
-    fields=['title', 'style', 'position', 'resume', 'repo_name']
+    repo_name = serializers.CharField(max_length=255)
+
+    class Meta:
+        model = Interview
+        fields = ['title', 'style', 'position', 'resume', 'repo_name']
+
+    def create(self, validated_data):
+        repo_name = validated_data.pop('repo_name', '')
+        instance = Interview.objects.create(**validated_data)
+        return instance
 
 class InterviewSerializer(serializers.ModelSerializer):
  

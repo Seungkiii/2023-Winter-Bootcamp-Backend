@@ -39,7 +39,7 @@ COPY . .
 
 RUN chown -R appuser:appuser .
 
-USER appuser
+
 
 # EXPOSE 8000
 
