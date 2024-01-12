@@ -27,11 +27,12 @@ class ResumeCreate(generics.CreateAPIView):
                          responses={201: openapi.Response('Created', ResumeSerializer)})
     def post(self, request, *args, **kwargs):
         user_id = request.data.get('user_id')
+        title = request.data.get('title')
         img_file = request.FILES.get('img_file')
         pdf_file = request.FILES.get('pdf_file')
 
-        if not img_file or not user_id or not pdf_file:
-            return Response({'error': 'img file or user ID or pdf file not provided'}, status=status.HTTP_400_BAD_REQUEST)
+        if not img_file or not user_id or not pdf_file or not title:
+            return Response({'error': 'img file or user ID or pdf file or title not provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         pdf = PdfReader(pdf_file)
         text_contents = ""
@@ -44,8 +45,9 @@ class ResumeCreate(generics.CreateAPIView):
 
         data = {
             'text_contents': text_contents,
-            'image_url': image_url,
+            'pre_image_url': image_url,
             'user_id': user_id,
+            'title':title
         }
 
         serializer = self.get_serializer(data=data)
