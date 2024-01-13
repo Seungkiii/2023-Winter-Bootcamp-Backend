@@ -3,7 +3,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
 from .models import Interview
-from .serializers import QuestionListSerializer, AnswerCreateSerializer, InterviewResultSerializer, InterviewListSerializer
+from .serializers import QuestionListSerializer, AnswerCreateSerializer, InterviewResultSerializer, \
+    InterviewListSerializer, InterviewCreateSerializer
+
 
 # 면접 질문 목록 조회 API
 class QuestionView(APIView):
@@ -46,3 +48,12 @@ class InterviewListView(APIView):
     serializer = InterviewListSerializer(interviews, many=True)
       
     return Response(serializer.data)
+
+
+class InterviewCreateView(APIView):
+    def post(self, request):
+        serializer = InterviewCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
