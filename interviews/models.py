@@ -24,7 +24,8 @@ class Interview(BaseModel):
   title = models.CharField(max_length=255)
   style = models.CharField(max_length=5, choices=[(tag.value, tag.name) for tag in InterviewStyle]) # 화상면접/음성면접/텍스트면접
   position = models.CharField(max_length=9, choices=[(tag.value, tag.name) for tag in PositionType]) #백엔드,프론트엔드,풀스택
-  repo_name =models.CharField(max_length=255)
+
+  
 
 
 class Interview_Type(models.Model):
@@ -43,4 +44,8 @@ class Answer(BaseModel):
   question = models.OneToOneField(Question, on_delete=models.CASCADE)
   content = models.CharField(max_length=255)
   record_url = models.CharField(max_length=500)
+
+class Repository(BaseModel):
+  interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
+  repo_name = models.CharField(max_length=255)
   

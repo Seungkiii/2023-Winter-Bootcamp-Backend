@@ -1,20 +1,7 @@
 from django.urls import path
-#from .views import QuestionView
-from .views import InterviewList
+from .views import InterviewCreateView
 
 urlpatterns = [
-    #path('<int:id>/questions/', QuestionView.as_view(), name='question-view'),
-
-    path('', InterviewList.as_view(), name='interview-list'),
-       
+    path('create/', InterviewCreateView.as_view(), name='create_interview'),
+    # 다른 필요한 URL 패턴들을 추가할 수 있습니다.
 ]
-
-
-# from django.urls import path
-# from .views import InterviewViewSet
-
-# interview_list = InterviewViewSet.as_view({'get': 'list', 'post': 'create'})
-
-# urlpatterns = [
-#     path('', interview_list, name='interview-list'),
-# ]
