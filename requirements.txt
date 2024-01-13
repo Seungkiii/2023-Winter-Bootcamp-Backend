@@ -87,4 +87,4 @@ yarl==1.9.2
 #zope.interface==6.0
 pillow~=10.2.0
 Faker~=22.2.0
-PyMuPDF==1.23.10
+PyMuPDF==1.23.12

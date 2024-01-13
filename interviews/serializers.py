@@ -84,3 +84,49 @@ class InterviewListSerializer(serializers.ModelSerializer):
   class Meta:
     model = Interview
     fields = ['id', 'title']
+
+
+class InterviewCreateSerializer(serializers.ModelSerializer):
+  repo_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
+  type_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
+
+  repo_names_display = serializers.SerializerMethodField()
+  type_names_display = serializers.SerializerMethodField()
+
+  class Meta:
+    model = Interview
+    fields = ['user', 'title', 'position', 'style', 'resume', 'repo_names', 'type_names', 'repo_names_display',
+              'type_names_display']
+
+  def create(self, validated_data):
+    repo_names = validated_data.pop('repo_names')
+    type_names = validated_data.pop('type_names')
+
+    interview = self.create_interviews(validated_data)
+    self.create_repo(repo_names, interview)
+    self.create_type_name(type_names, interview)
+
+    return interview
+
+  def create_interviews(self, validated_data):
+    interview = Interview.objects.create(**validated_data)
+    return interview
+
+  def create_repo(self, repo_names, interview):
+    for repo_name in repo_names:
+      Repository.objects.create(repo_name=repo_name, interview=interview)
+
+  def create_type_name(self, type_names, interview):
+    for type_name in type_names:
+        interview_type, created = Interview_Type.objects.get_or_create(type_name=type_name)
+        type_choice, created = Type_Choice.objects.get_or_create(interview=interview, interview_type=interview_type)
+        if not created:
+            type_choice.interview = interview
+            type_choice.save()
+
+
+  def get_repo_names_display(self, obj):
+    return [repo.repo_name for repo in obj.repository_set.all()]
+
+  def get_type_names_display(self, obj):
+    return [type_choice.interview_type.type_name for type_choice in obj.type_choice_set.all()]
