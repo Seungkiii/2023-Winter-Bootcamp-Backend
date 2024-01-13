@@ -12,6 +12,6 @@ def handle_uploaded_file_s3(file):
         s3_client.upload_fileobj(file, bucket_name, file_key)
         file_url = f"https://{bucket_name}.s3.ap-northeast-2.amazonaws.com/{file_key}"
 
-        return file_url
+        return file_url, file_key
     except NoCredentialsError:
         return {"error": "S3 credential is missing"}

@@ -50,7 +50,7 @@ mccabe==0.7.0
 multidict==6.0.4
 mypy-extensions==1.0.0
 mysqlclient==2.2.1
-openai==0.27.8
+openai==1.7.2
 packaging==23.1
 pathspec==0.11.1
 platformdirs==3.8.1
@@ -67,6 +67,10 @@ python-logstash==0.4.8
 pytz==2023.3
 PyPDF2==3.0.1
 PyYAML==6.0.1
+pillow~=10.2.0
+Faker~=22.2.0
+PyMuPDF==1.23.12
+pydub==0.25.1
 redis==4.6.0
 requests==2.31.0
 s3transfer==0.6.1
@@ -85,6 +89,3 @@ wcwidth==0.2.6
 yarl==1.9.2
 #zope.event==5.0
 #zope.interface==6.0
-pillow~=10.2.0
-Faker~=22.2.0
-PyMuPDF==1.23.12

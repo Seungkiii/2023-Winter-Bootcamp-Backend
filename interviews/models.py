@@ -39,7 +39,7 @@ class Question(BaseModel):
   
 class Answer(BaseModel):
   question = models.OneToOneField(Question, on_delete=models.CASCADE)
-  content = models.CharField(max_length=255)
+  content = models.CharField(max_length=500)
   record_url = models.URLField(max_length=500)
 
 class Repository(BaseModel):
