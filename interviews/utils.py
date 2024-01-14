@@ -23,8 +23,8 @@ def handle_uploaded_file_s3(file):
         return {"error": "S3 credential is missing"}
 
 
-GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
-client = OpenAI(api_key=GITHUB_CLIENT_SECRET)
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+client = OpenAI(api_key="OPENAI_API_KEY")
 
 def create_questions_withgpt(repo_name, type_name, position, resume_id):
     # Resume 테이블에서 resume_id에 해당하는 레코드를 가져옵니다.
