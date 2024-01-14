@@ -94,7 +94,7 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
 
   class Meta:
     model = Interview
-    fields = ['user', 'title', 'position', 'style', 'resume', 'repo_names', 'type_names', 'repo_names_display',
+    fields = ['id', 'user', 'title', 'position', 'style', 'resume', 'repo_names', 'type_names', 'repo_names_display',
               'type_names_display']
 
   def create(self, validated_data):
