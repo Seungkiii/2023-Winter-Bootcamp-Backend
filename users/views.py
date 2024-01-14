@@ -61,6 +61,7 @@ def github_callback(request):
       messages.success(request, f"{username} logged in with Github")
     
     login(request, user)
+    print('LOGIN')
     return redirect("http://localhost:3000")
   
   except GithubException as error:
@@ -72,6 +73,16 @@ def github_callback(request):
     return redirect("http://localhost:3000")
   
 def logout_view(request):
-  logout(request)
-  
-  return redirect("http://localhost:3000")
+    print(request.user)
+    print(request.session)
+    # 사용자가 로그인되어 있지 않은 경우
+    if not request.user.is_authenticated:
+        messages.info(request, "No user is currently logged in.")
+        print('NO')
+        return redirect("http://localhost:3000")
+
+    # 로그아웃 실행
+    logout(request)
+    messages.success(request, "Successfully logged out.")
+    print('YES')
+    return redirect("http://localhost:3000")
