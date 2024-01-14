@@ -1,6 +1,10 @@
 import boto3
 from uuid import uuid4
 from botocore.exceptions import NoCredentialsError
+import openai
+
+from interviews.models import QuestionType, Question
+
 
 def handle_uploaded_file_s3(file):
 
@@ -15,3 +19,32 @@ def handle_uploaded_file_s3(file):
         return file_url, file_key
     except NoCredentialsError:
         return {"error": "S3 credential is missing"}
+
+
+
+
+openai.api_key = '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'
+
+
+def create_questions_withgpt(repo_name, type_name, position):
+    question_types = [QuestionType.PROJECT.value, QuestionType.CS.value, QuestionType.PERSONALITY.value]
+    questions = []
+
+    for question_type in question_types:
+        prompt = f"{repo_name}에 대한 {type_name}, {position} 관련 {question_type} 질문은 무엇인가요?"
+
+        response = openai.Completion.create(
+            engine="text-davinci-002",
+            prompt=prompt,
+            temperature=0.5,
+            max_tokens=60
+        )
+
+        questions.append((response.choices[0].text.strip(), question_type))
+
+    return questions
+
+
+def save_question(questions, interview):
+    for question, question_type in questions:
+        Question.objects.create(content=question, question_type=question_type, interview=interview)
