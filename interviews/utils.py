@@ -3,7 +3,7 @@ from uuid import uuid4
 from botocore.exceptions import NoCredentialsError
 import openai
 from openai import OpenAI
-
+import os
 from interviews.models import QuestionType, Question
 from resumes.models import Resume
 
@@ -23,10 +23,8 @@ def handle_uploaded_file_s3(file):
         return {"error": "S3 credential is missing"}
 
 
-
-
-
-client = OpenAI(api_key='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')
+GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
+client = OpenAI(api_key=GITHUB_CLIENT_SECRET)
 
 def create_questions_withgpt(repo_name, type_name, position, resume_id):
     # Resume 테이블에서 resume_id에 해당하는 레코드를 가져옵니다.
