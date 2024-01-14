@@ -45,6 +45,9 @@ CORS_ORIGIN_WHITELIST = [
     "http://backend:8000"
 ]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1", "giterview.site"]
 
 REST_FRAMEWORK = {
@@ -115,7 +118,7 @@ INSTALLED_APPS = [
     # "users",
     # "speak_to_chat",
 
-    # "corsheaders",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
