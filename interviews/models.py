@@ -2,6 +2,7 @@ from enum import Enum
 from django.db import models
 from common.models import BaseModel
 from users.models import User
+from resumes.models import Resume
 
 class InterviewStyle(Enum):
   VIDEO = 'video'
@@ -20,7 +21,7 @@ class QuestionType(Enum):
   
 class Interview(BaseModel):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
-  resume = models.IntegerField()
+  resume = models.ForeignKey(Resume, on_delete=models.CASCADE)
   title = models.CharField(max_length=255)
   style = models.CharField(max_length=5, choices=[(tag.value, tag.name) for tag in InterviewStyle])
   position = models.CharField(max_length=9, choices=[(tag.value, tag.name) for tag in PositionType])

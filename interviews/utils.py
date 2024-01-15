@@ -36,12 +36,11 @@ def create_questions_withgpt(repo_name, type_name, position, resume_id):
     questions = []
 
 
-
     for question_type in question_types:
         prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_name}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
 
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             temperature=1,
             messages=[
                 {

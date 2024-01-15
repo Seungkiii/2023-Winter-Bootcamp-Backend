@@ -47,6 +47,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
   def get_questions(self, obj):
     questions = Question.objects.filter(interview=obj)
     return [{
+      'id': question.id,
       'type_name': self.get_type_name_for_question(question),
       'content': question.content
     } for question in questions]
@@ -86,47 +87,27 @@ class InterviewListSerializer(serializers.ModelSerializer):
     model = Interview
     fields = ['id', 'title']
 
-
+# 면접 생성 Serializer
 class InterviewCreateSerializer(serializers.ModelSerializer):
   repo_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
   type_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
 
   repo_names_display = serializers.SerializerMethodField()
   type_names_display = serializers.SerializerMethodField()
+  
+  resume = serializers.IntegerField(write_only=True)
 
   class Meta:
     model = Interview
     fields = ['id', 'user', 'title', 'position', 'style', 'resume', 'repo_names', 'type_names', 'repo_names_display',
               'type_names_display']
 
-  # def create(self, validated_data):
-  #   repo_names = validated_data.pop('repo_names')
-  #   type_names = validated_data.pop('type_names')
-  #
-  #   interview = self.create_interviews(validated_data)
-  #   self.create_repo(repo_names, interview)
-  #   self.create_type_name(type_names, interview)
-  #
-  #   return interview
-  # def create(self, validated_data):
-  #   repo_names = validated_data.pop('repo_names')
-  #   type_names = validated_data.pop('type_names')
-  #
-  #   interview = self.create_interviews(validated_data)
-  #   self.create_repo(repo_names, interview)
-  #   self.create_type_name(type_names, interview)
-  #
-  #   # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
-  #   if 'repo_names' in validated_data and 'type_names' in validated_data and 'position' in validated_data:
-  #     questions = create_questions_withgpt(validated_data['repo_names'], validated_data['type_namesdocke'], validated_data['position'])
-  #     save_question(questions, interview)
-  #
-  #   return interview
   def create(self, validated_data):
     repo_names = validated_data.pop('repo_names', None)
     type_names = validated_data.pop('type_names', None)
+    resume_id = validated_data.pop('resume', None)
 
-    interview = Interview.objects.create(**validated_data)
+    interview = Interview.objects.create(resume_id=resume_id, **validated_data)
 
     if repo_names:
       for name in repo_names:
@@ -138,10 +119,10 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
         Type_Choice.objects.create(interview=interview, interview_type=type_obj)
 
     # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
-    if repo_names and type_names and 'position' in validated_data and 'resume' in validated_data:
+    if repo_names and type_names and 'position' in validated_data and resume_id:
       for repo_name in repo_names:
         for type_name in type_names:
-          questions = create_questions_withgpt(repo_name, type_name, validated_data['position'],validated_data['resume'])
+          questions = create_questions_withgpt(repo_name, type_name, validated_data['position'], resume_id)
           save_question(questions, interview)
 
     return interview

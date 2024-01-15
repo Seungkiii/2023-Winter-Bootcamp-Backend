@@ -10,8 +10,13 @@ from openai import OpenAI
 from .utils import handle_uploaded_file_s3
 import boto3
 from botocore.exceptions import NoCredentialsError
+from dotenv import load_dotenv
+import os
 
-client = OpenAI(api_key='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')
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 def binary(key):
     s3_client = boto3.client('s3')
