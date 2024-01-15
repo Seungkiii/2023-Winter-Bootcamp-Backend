@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Interview_Type, Question, Interview, Type_Choice, Answer, Repository
+from .utils import create_questions_withgpt, save_question
+
 
 # 면접 결과 조회 Serializer
 class InterviewResultSerializer(serializers.ModelSerializer):
@@ -97,13 +99,50 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
     fields = ['id', 'user', 'title', 'position', 'style', 'resume', 'repo_names', 'type_names', 'repo_names_display',
               'type_names_display']
 
+  # def create(self, validated_data):
+  #   repo_names = validated_data.pop('repo_names')
+  #   type_names = validated_data.pop('type_names')
+  #
+  #   interview = self.create_interviews(validated_data)
+  #   self.create_repo(repo_names, interview)
+  #   self.create_type_name(type_names, interview)
+  #
+  #   return interview
+  # def create(self, validated_data):
+  #   repo_names = validated_data.pop('repo_names')
+  #   type_names = validated_data.pop('type_names')
+  #
+  #   interview = self.create_interviews(validated_data)
+  #   self.create_repo(repo_names, interview)
+  #   self.create_type_name(type_names, interview)
+  #
+  #   # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
+  #   if 'repo_names' in validated_data and 'type_names' in validated_data and 'position' in validated_data:
+  #     questions = create_questions_withgpt(validated_data['repo_names'], validated_data['type_namesdocke'], validated_data['position'])
+  #     save_question(questions, interview)
+  #
+  #   return interview
   def create(self, validated_data):
-    repo_names = validated_data.pop('repo_names')
-    type_names = validated_data.pop('type_names')
+    repo_names = validated_data.pop('repo_names', None)
+    type_names = validated_data.pop('type_names', None)
 
-    interview = self.create_interviews(validated_data)
-    self.create_repo(repo_names, interview)
-    self.create_type_name(type_names, interview)
+    interview = Interview.objects.create(**validated_data)
+
+    if repo_names:
+      for name in repo_names:
+        Repository.objects.create(interview=interview, repo_name=name)
+
+    if type_names:
+      for name in type_names:
+        type_obj, created = Interview_Type.objects.get_or_create(type_name=name)
+        Type_Choice.objects.create(interview=interview, interview_type=type_obj)
+
+    # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
+    if repo_names and type_names and 'position' in validated_data and 'resume' in validated_data:
+      for repo_name in repo_names:
+        for type_name in type_names:
+          questions = create_questions_withgpt(repo_name, type_name, validated_data['position'],validated_data['resume'])
+          save_question(questions, interview)
 
     return interview
 

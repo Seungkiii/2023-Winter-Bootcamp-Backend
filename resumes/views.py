@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.files.storage import default_storage
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -51,7 +53,10 @@ class ResumeCreate(generics.CreateAPIView):
         image_io = BytesIO()
         first_page.save(image_io, format='JPEG')
         image_io.seek(0)  # Reset file pointer to the beginning
-        image_file = ContentFile(image_io.read(), 'first_page.jpg')
+
+        # UUID를 생성하여 파일 이름을 고유하게 만듭니다.
+        image_file_name = f'{uuid.uuid4().hex}.jpg'
+        image_file = ContentFile(image_io.read(), image_file_name)
 
         # 파일을 S3에 업로드하고 가져옵니다.
         file_name = default_storage.save('imgs/' + image_file.name, image_file)
