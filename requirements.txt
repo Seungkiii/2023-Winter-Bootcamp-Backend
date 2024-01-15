@@ -50,7 +50,7 @@ mccabe==0.7.0
 multidict==6.0.4
 mypy-extensions==1.0.0
 mysqlclient==2.2.1
-openai==1.7.2pi
+openai==1.7.2
 packaging==23.1
 pathspec==0.11.1
 platformdirs==3.8.1
