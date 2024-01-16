@@ -5,7 +5,7 @@ from rest_framework import status
 from django.core.exceptions import ObjectDoesNotExist
 from .models import Interview
 from .serializers import QuestionListSerializer, AnswerCreateSerializer, InterviewResultSerializer, \
-    InterviewListSerializer, InterviewCreateSerializer
+    InterviewListSerializer, InterviewCreateSerializer, QuestionCreateSerializer
 from openai import OpenAI
 from .utils import handle_uploaded_file_s3
 import boto3
@@ -136,3 +136,17 @@ class InterviewCreateView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+#질문 생성 API
+class QuestionCreateView(APIView):
+  def post(self, request, id, *args, **kwargs):
+    data = request.data
+    data['interview'] = id  # interview_id를 request.data에 추가
+    serializer = QuestionCreateSerializer(data=data)
+    if serializer.is_valid():
+      created_questions = serializer.save()
+      for question in created_questions:
+        serializer = QuestionCreateSerializer(question)  # 개별 객체를 직렬화
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

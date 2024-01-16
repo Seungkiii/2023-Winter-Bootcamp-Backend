@@ -119,11 +119,15 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
         Type_Choice.objects.create(interview=interview, interview_type=type_obj)
 
     # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
-    if repo_names and type_names and 'position' in validated_data and resume_id:
-      for repo_name in repo_names:
-        for type_name in type_names:
-          questions = create_questions_withgpt(repo_name, type_name, validated_data['position'], resume_id)
-          save_question(questions, interview)
+    # if repo_names and type_names and 'position' in validated_data and resume_id:
+    #   for repo_name in repo_names:
+    #     for type_name in type_names:
+    #       questions = create_questions_withgpt(repo_name, type_name, validated_data['position'], resume_id)
+    #       save_question(questions, interview)
+
+    question="간단한 자기소개 부탁드립니다."
+    Question.question_type="common"
+    Question.objects.create(content=question, question_type=Question.question_type, interview=interview)
 
     return interview
 
@@ -149,3 +153,27 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
 
   def get_type_names_display(self, obj):
     return [type_choice.interview_type.type_name for type_choice in obj.type_choice_set.all()]
+
+#질문 생성
+class QuestionCreateSerializer(serializers.ModelSerializer):
+  id = serializers.IntegerField(read_only=True)  # id 필드를 읽기 전용으로 설정
+  interview = serializers.PrimaryKeyRelatedField(queryset=Interview.objects.all())
+  type_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
+
+  class Meta():
+    model = Question
+    fields = ['id', 'interview', 'type_names']
+
+  def create(self, validated_data):
+    interview = validated_data['interview']
+    questions = create_questions_withgpt(interview, validated_data['type_names'])
+
+    # 생성된 Question 객체를 저장할 리스트
+    created_questions = []
+
+    for question, question_type in questions:
+      question_obj = Question.objects.create(content=question, question_type=question_type, interview=interview)
+      created_questions.append(question_obj)
+
+    # 생성된 Question 객체들을 반환
+    return created_questions
