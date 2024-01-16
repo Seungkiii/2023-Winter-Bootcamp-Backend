@@ -4,7 +4,9 @@ from botocore.exceptions import NoCredentialsError
 import openai
 from openai import OpenAI
 import os
-from interviews.models import QuestionType, Question
+
+import interviews
+from interviews.models import QuestionType, Question, Interview, Repository
 from resumes.models import Resume
 
 
@@ -26,33 +28,60 @@ def handle_uploaded_file_s3(file):
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
-def create_questions_withgpt(repo_name, type_name, position, resume_id):
+def create_questions_withgpt(interview, type_names):
+
     # Resume 테이블에서 resume_id에 해당하는 레코드를 가져옵니다.
-    resume = Resume.objects.get(id=resume_id)
+    resume = Resume.objects.get(id=interview.resume_id)
     # 이력서의 text_contents를 가져옵니다.
     resume_contents = resume.text_contents
     # GPT 함수에 resume_contents를 전달합니다.
-    question_types = [qt.value for qt in QuestionType if qt.value in type_name]
+    question_types = [qt.value for qt in QuestionType if qt.value in type_names]
+    # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
+    repository = Repository.objects.get(interview_id=interview.id)
+
+    # Repository 객체에서 repo_name을 가져옵니다.
+    repo_name = repository.repo_name
+    position = interview.position
+
     questions = []
 
 
-    for question_type in question_types:
-        prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_name}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
 
-        response = client.chat.completions.create(
-            model="gpt-4",
-            temperature=1,
-            messages=[
-                {
-                    "role": "system",
-                    "content": prompt
-                },
+    # for question_type in question_types:
+    #     # prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_names}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
+    #     prompt = f"Say hello "
+    #     response = client.chat.completions.create(
+    #         model="gpt-3.5-turbo",
+    #         temperature=1,
+    #         messages=[
+    #             {
+    #                 "role": "system",
+    #                 "content": prompt
+    #             },
+    #
+    #         ]
+    #     )
+    #     print(response)
+    #
+    #     questions.append((response.choices[0].message.content.strip(), question_type))
+    #
+    # return questions
 
-            ]
-        )
+    # prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_names}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
 
+    prompt = f"Just say {', '.join(type_names)} . Don't explain"
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=1,
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
 
-        questions.append((response.choices[0].message.content.strip(), question_type))
+        ]
+    )
+    questions.append((response.choices[0].message.content.strip(), "cs"))
 
     return questions
 

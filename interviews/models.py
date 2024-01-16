@@ -18,6 +18,7 @@ class QuestionType(Enum):
   PROJECT = 'project'
   CS = 'cs'
   PERSONALITY = 'personality'
+  COMMON = 'common'
   
 class Interview(BaseModel):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
