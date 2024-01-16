@@ -80,7 +80,7 @@ REST_FRAMEWORK = {
 #     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 # }
 
-# AUTH_USER_MODEL = "users.User"
+AUTH_USER_MODEL = "users.User"
 
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
