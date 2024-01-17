@@ -8,7 +8,22 @@ import time
 import interviews
 from interviews.models import QuestionType, Question, Interview, Repository, Answer
 from resumes.models import Resume
+import requests
 
+def get_github_file_content(username, repo_name):
+    url = f"https://api.github.com/search/code?q=filename:package.json+OR+filename:build.gradle+repo:{username}/{repo_name}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        items = response.json().get('items', [])
+        if items:
+            file_url = items[0].get('url')
+            file_response = requests.get(file_url)
+            if file_response.status_code == 200:
+                download_url = file_response.json().get('download_url')
+                download_response = requests.get(download_url)
+                print(download_response)
+                return download_response
+    return None
 
 def handle_uploaded_file_s3(file):
 
@@ -36,11 +51,20 @@ def create_questions_withgpt(interview, type_names):
     resume_contents = resume.text_contents
     # GPT 함수에 resume_contents를 전달합니다.
     question_types = [qt.value for qt in QuestionType if qt.value in type_names]
+    
     # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
-    repository = Repository.objects.get(interview_id=interview.id)
+    repositories = Repository.objects.filter(interview_id=interview.id)
+    
+    # Interview에서 username을 가져옴
+    user = interview.user
+    username = user.username
+    
+    # 각 Repository에서 파일 내용을 가져옴
+    repo_content = []
+    for repo in repositories:
+        repo_name = repo.repo_name
+        repo_content = get_github_file_content(username, repo_name)
 
-    # Repository 객체에서 repo_name을 가져옵니다.
-    repo_name = repository.repo_name
     position = interview.position
 
     previous_question = Question.objects.filter(interview_id=interview.id).order_by('-id').first()
@@ -70,13 +94,13 @@ def create_questions_withgpt(interview, type_names):
     #
     # return questions
 
-    prompt = f"You are an interviewer for a company and you are interviewing a developer. The {resume_contents} is the content of the interviewer's resume. Your task is to write 1 Korean question of 200 characters or less and {question_types} related to {', '.join(type_names)}, {repo_name}, {position} based on the interviewer's resume. You can also refer to the previous question:{previous_question.content} and previous answer:{previous_answer.content} to create a tail-to-tail question or a different question from the previous one. Questions must be translated into Korean."
+    prompt = f"{repo_content} 를 한줄로 설명해줘."
 
     #프롬프트 생성
      #prompt = f"Do not explain yourself and do not take more than 100 characters to summarize.  Summarize {previous_question.content} and {previous_answer.content}"
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        temperature=1,
+        temperature=0,
         messages=[
             {
                 "role": "system",
