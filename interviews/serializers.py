@@ -185,3 +185,10 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
 
         # 생성된 Question 객체들을 반환
         return created_questions
+
+    def to_representation(self, instance):
+        # super().to_representation(instance)를 호출하여 기본 직렬화 데이터를 가져옵니다.
+        ret = super().to_representation(instance)
+        # 직렬화 데이터에 content 필드를 추가합니다.
+        ret['content'] = instance.content
+        return ret
