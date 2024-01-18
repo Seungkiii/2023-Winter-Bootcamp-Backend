@@ -148,6 +148,7 @@ class InterviewProcessView(APIView):
                     if question_serializer.is_valid():
                         created_questions = question_serializer.save()  # Question 객체 리스트 저장
                         for question in created_questions:
+
                             question_serializer = QuestionCreateSerializer(question)  # 개별 객체 직렬화
                             answer_serializer = AnswerCreateSerializer(answer)  # Answer 객체 직렬화
                             return Response({
