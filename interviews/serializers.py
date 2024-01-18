@@ -154,26 +154,41 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
   def get_type_names_display(self, obj):
     return [type_choice.interview_type.type_name for type_choice in obj.type_choice_set.all()]
 
+
+
+
+
+
 #질문 생성
 class QuestionCreateSerializer(serializers.ModelSerializer):
-  id = serializers.IntegerField(read_only=True)  # id 필드를 읽기 전용으로 설정
-  interview = serializers.PrimaryKeyRelatedField(queryset=Interview.objects.all())
-  type_names = serializers.ListField(child=serializers.CharField(max_length=200), write_only=True)
+    id = serializers.IntegerField(read_only=True)  # id 필드를 읽기 전용으로 설정
+    interview = serializers.PrimaryKeyRelatedField(queryset=Interview.objects.all())
 
-  class Meta():
-    model = Question
-    fields = ['id', 'interview', 'type_names']
+    class Meta():
+        model = Question
+        fields = ['id', 'interview']
 
-  def create(self, validated_data):
-    interview = validated_data['interview']
-    questions = create_questions_withgpt(interview, validated_data['type_names'])
+    def create(self, validated_data):
+        interview = validated_data['interview']
 
-    # 생성된 Question 객체를 저장할 리스트
-    created_questions = []
+        # Interview 객체에서 type_names 가져오기
+        type_names = [choice.interview_type.type_name for choice in Type_Choice.objects.filter(interview=interview)]
+        print(type_names)
+        questions = create_questions_withgpt(interview, type_names)
 
-    for question, question_type in questions:
-      question_obj = Question.objects.create(content=question, question_type=question_type, interview=interview)
-      created_questions.append(question_obj)
+        # 생성된 Question 객체를 저장할 리스트
+        created_questions = []
 
-    # 생성된 Question 객체들을 반환
-    return created_questions
+        for question, question_type in questions:
+            question_obj = Question.objects.create(content=question, question_type=question_type, interview=interview)
+            created_questions.append(question_obj)
+
+        # 생성된 Question 객체들을 반환
+        return created_questions
+
+    def to_representation(self, instance):
+        # super().to_representation(instance)를 호출하여 기본 직렬화 데이터를 가져옵니다.
+        ret = super().to_representation(instance)
+        # 직렬화 데이터에 content 필드를 추가합니다.
+        ret['content'] = instance.content
+        return ret
