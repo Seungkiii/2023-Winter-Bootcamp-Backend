@@ -51,7 +51,9 @@ def create_questions_withgpt(interview, type_names):
         # 이력서의 text_contents를 가져옵니다.
         resume_contents = resume.text_contents
         # GPT 함수에 resume_contents를 전달합니다.
-        question_types = [qt.value for qt in QuestionType if qt.value in type_names]
+        # question_types = [qt.value for qt in QuestionType if qt.value in type_names]
+        question_type = type_names
+        print(question_type)
         # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
         repository = Repository.objects.get(interview_id=interview.id)
 
@@ -62,14 +64,14 @@ def create_questions_withgpt(interview, type_names):
 
         previous_question = Question.objects.filter(interview_id=interview.id).order_by('-id').first()
         previous_answer = Answer.objects.filter(question_id=previous_question.id).first()
-        all_questions = Question.objects.filter(interview_id=interview)
+
         questions = []
 
         previous_question_type = previous_question.question_type
         # 현재 질문타입 꺼내기
-        question_type = question_types[0]
+
         # 전 질문타입과 같다면 꼬리질문 가능
-        if (previous_question_type in question_types or previous_question_type=="common"):
+        if (previous_question_type == question_type or previous_question_type=="common"):
             # 질문 타입에 맞게 프롬프트 생성
             if question_type == "project":
                 prompt = \

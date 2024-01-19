@@ -117,6 +117,7 @@ class InterviewProcessView(APIView):
     def post(self, request, interview_id, question_id, *args, **kwargs):
         request.data['question'] = question_id  # AnswerCreateSerializer에 필요한 question 필드 추가
         request.data['interview'] = interview_id  # QuestionCreateSerializer에 필요한 interview 필드 추가
+
         # type_name_json = request.data.get('type_name')
         # if type_name_json:
         #     try:

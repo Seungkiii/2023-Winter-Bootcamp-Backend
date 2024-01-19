@@ -163,18 +163,20 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
 class QuestionCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)  # id 필드를 읽기 전용으로 설정
     interview = serializers.PrimaryKeyRelatedField(queryset=Interview.objects.all())
+    question_type = serializers.CharField()
 
     class Meta():
         model = Question
-        fields = ['id', 'interview']
+        fields = ['id', 'interview', 'question_type']
 
     def create(self, validated_data):
         interview = validated_data['interview']
+        type_name = validated_data['question_type']
 
         # Interview 객체에서 type_names 가져오기
-        type_names = [choice.interview_type.type_name for choice in Type_Choice.objects.filter(interview=interview)]
-        print(type_names)
-        questions = create_questions_withgpt(interview, type_names)
+        # type_names = [choice.interview_type.type_name for choice in Type_Choice.objects.filter(interview=interview)]
+        # print(type_names)
+        questions = create_questions_withgpt(interview, type_name)
 
         # 생성된 Question 객체를 저장할 리스트
         created_questions = []
