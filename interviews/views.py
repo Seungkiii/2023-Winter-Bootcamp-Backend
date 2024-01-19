@@ -1,7 +1,7 @@
 import json
 import tempfile
 
-
+import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, parsers
@@ -113,10 +113,18 @@ class AnswerCreateView(APIView):
 
 
 class InterviewProcessView(APIView):
-
+    #parser_classes = [parsers.MultiPartParser, parsers.FormParser]
     def post(self, request, interview_id, question_id, *args, **kwargs):
         request.data['question'] = question_id  # AnswerCreateSerializer에 필요한 question 필드 추가
         request.data['interview'] = interview_id  # QuestionCreateSerializer에 필요한 interview 필드 추가
+        # type_name_json = request.data.get('type_name')
+        # if type_name_json:
+        #     try:
+        #         type_name = json.loads(type_name_json)
+        #     except json.JSONDecodeError:
+        #         return Response({'error': 'Invalid JSON format'}, status=400)
+        # else:
+        #     type_name = None
 
         serializer = AnswerCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -140,7 +148,6 @@ class InterviewProcessView(APIView):
                     # 음성 파일을 text로 변환
                     transcript = generate_corrected_transcript(0, system_prompt, temp_file)
                     content = transcript
-                    print(content)
 
                     answer = serializer.save(content=content, record_url=record_url)  # Answer 객체 저장
 

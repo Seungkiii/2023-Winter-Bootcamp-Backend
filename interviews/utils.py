@@ -58,25 +58,32 @@ def create_questions_withgpt(interview, type_names):
         # Repository 객체에서 repo_name을 가져옵니다.
         repo_name = repository.repo_name
         position = interview.position
-        repo_info = "drf project"
+        repo_info = "AI Interview"
 
         previous_question = Question.objects.filter(interview_id=interview.id).order_by('-id').first()
         previous_answer = Answer.objects.filter(question_id=previous_question.id).first()
-
+        all_questions = Question.objects.filter(interview_id=interview)
         questions = []
 
         previous_question_type = previous_question.question_type
         # 현재 질문타입 꺼내기
         question_type = question_types[0]
         # 전 질문타입과 같다면 꼬리질문 가능
-        if previous_question_type in question_types:
+        if (previous_question_type in question_types or previous_question_type=="common"):
             # 질문 타입에 맞게 프롬프트 생성
             if question_type == "project":
-                prompt = f"As a developer interviewer, you need to think from a project perspective. Your task is to create one question in Korean of {question_type} type within 200 characters. The content of the question should be based on your analysis of the {repo_info} and {resume_contents} and should be relevant to the {position}. You can also create a follow-up question referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}, but make sure to specify which part of the previous answer you are referring to. Your question should be specific and creative.Don't explain what you are"
+                prompt = \
+                    f"""As a developer interviewer, you need to think from a project perspective and evaluate the candidate's knowledge, roles, experience, learning and problem-solving skills on projects they have worked on previously.Your task is to create a question of the type {question_type} in Korean within 200 characters.
+                     The content of the question should be based on your analysis of the {repo_info} and {resume_contents} and should be relevant to the {position}.You can also create follow-up questions that deepen and apply the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                     Specify which part of the previous answer or analysed repository you are referring to. The question you create should be specific and creative"""
             elif question_type == "cs":
-                prompt = f"You are participating as the company's CS expert and interviewer and should think from a ComputerScience perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less. The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}, but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"
+                prompt = f"""You are participating as the company's CS expert and interviewer and should think from a ComputerScience perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less.
+                The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"""
             elif question_type == "personality":
-                prompt = f"You're participating as both the company's HR representative and the interviewer, so think of it from that perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less. The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}, but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"
+                prompt = f"""You're participating as both the company's HR representative and the interviewer, so think of it from that perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less.
+                The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"""
 
         else:
             # 질문 타입에 맞게 프롬프트 생성
@@ -91,7 +98,7 @@ def create_questions_withgpt(interview, type_names):
 
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            temperature=0,
+            temperature=0.8,
             messages=[
                 {
                     "role": "system",
