@@ -52,7 +52,7 @@ services:
     depends_on:
       - mysql
       - rabbit
-      - web_app
+      - webapp
     networks:
       - mynetwork
     volumes:
