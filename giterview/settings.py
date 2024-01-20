@@ -154,11 +154,11 @@ db_secret = AWSManager.get_secret("MYSQL")
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "django_prometheus.db.backends.mysql",
         "NAME": os.getenv("MYSQL_DATABASE"),
         "USER": os.getenv("MYSQL_USER"),
         "PASSWORD": os.getenv("MYSQL_PASSWORD"),
-        "HOST": 'mysql',
+        "HOST": os.getenv("MYSQL_HOST"),
         "PORT": os.getenv("MYSQL_PORT"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
