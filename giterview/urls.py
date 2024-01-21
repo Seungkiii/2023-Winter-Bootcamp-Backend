@@ -40,7 +40,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/interviews/", include("interviews.urls")),
     path("api/resumes/", include("resumes.urls")),
-    path("users/", include("users.urls")),
+    path("api/users/", include("users.urls")),
+    path("", include("django_prometheus.urls")),
 ]
 
 urlpatterns += [

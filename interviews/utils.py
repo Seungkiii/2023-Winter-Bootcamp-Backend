@@ -2,13 +2,29 @@ import boto3
 from uuid import uuid4
 from botocore.exceptions import NoCredentialsError
 import openai
+from rest_framework.response import Response
 from openai import OpenAI
 import os
 import time
 import interviews
 from interviews.models import QuestionType, Question, Interview, Repository, Answer
 from resumes.models import Resume
+import requests
 
+def get_github_file_content(username, repo_name):
+    url = f"https://api.github.com/search/code?q=filename:package.json+OR+filename:build.gradle+repo:{username}/{repo_name}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        items = response.json().get('items', [])
+        if items:
+            file_url = items[0].get('url')
+            file_response = requests.get(file_url)
+            if file_response.status_code == 200:
+                download_url = file_response.json().get('download_url')
+                download_response = requests.get(download_url)
+                print(download_response)
+                return download_response
+    return None
 
 def handle_uploaded_file_s3(file):
 
@@ -29,119 +45,77 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
 
 def create_questions_withgpt(interview, type_names):
+    try:
+        # Resume 테이블에서 resume_id에 해당하는 레코드를 가져옵니다.
+        resume = Resume.objects.get(id=interview.resume_id)
+        # 이력서의 text_contents를 가져옵니다.
+        resume_contents = resume.text_contents
+        # GPT 함수에 resume_contents를 전달합니다.
+        # question_types = [qt.value for qt in QuestionType if qt.value in type_names]
+        question_type = type_names
+        print(question_type)
+        # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
+        repository = Repository.objects.get(interview_id=interview.id)
 
-    # Resume 테이블에서 resume_id에 해당하는 레코드를 가져옵니다.
-    resume = Resume.objects.get(id=interview.resume_id)
-    # 이력서의 text_contents를 가져옵니다.
-    resume_contents = resume.text_contents
-    # GPT 함수에 resume_contents를 전달합니다.
-    question_types = [qt.value for qt in QuestionType if qt.value in type_names]
-    # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
-    repository = Repository.objects.get(interview_id=interview.id)
+        # Repository 객체에서 repo_name을 가져옵니다.
+        repo_name = repository.repo_name
+        position = interview.position
+        repo_info = "AI Interview"
 
-    # Repository 객체에서 repo_name을 가져옵니다.
-    repo_name = repository.repo_name
-    position = interview.position
+        previous_question = Question.objects.filter(interview_id=interview.id).order_by('-id').first()
+        previous_answer = Answer.objects.filter(question_id=previous_question.id).first()
 
-    previous_question = Question.objects.filter(interview_id=interview.id).order_by('-id').first()
-    previous_answer = Answer.objects.filter(question_id=previous_question.id).first()
+        questions = []
 
-    questions = []
+        previous_question_type = previous_question.question_type
+        # 현재 질문타입 꺼내기
+
+        # 전 질문타입과 같다면 꼬리질문 가능
+        if (previous_question_type == question_type or previous_question_type=="common"):
+            # 질문 타입에 맞게 프롬프트 생성
+            if question_type == "project":
+                prompt = \
+                    f"""As a developer interviewer, you need to think from a project perspective and evaluate the candidate's knowledge, roles, experience, learning and problem-solving skills on projects they have worked on previously.Your task is to create a question of the type {question_type} in Korean within 200 characters.
+                     The content of the question should be based on your analysis of the {repo_info} and {resume_contents} and should be relevant to the {position}.You can also create follow-up questions that deepen and apply the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                     Specify which part of the previous answer or analysed repository you are referring to. The question you create should be specific and creative"""
+            elif question_type == "cs":
+                prompt = f"""You are participating as the company's CS expert and interviewer and should think from a ComputerScience perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less.
+                The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"""
+            elif question_type == "personality":
+                prompt = f"""You're participating as both the company's HR representative and the interviewer, so think of it from that perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less.
+                The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}. You can also create a tail question by referring to the previous question: {previous_question.content} and its answer: {previous_answer.content}.
+                but make sure to specify which part of the previous answer you are referring to.The question you create should be specific and creative"""
+
+        else:
+            # 질문 타입에 맞게 프롬프트 생성
+            # 전 질문타임과 다르다면 꼬리질문 불가능
+            if question_type == "project":
+                prompt = f"As a developer interviewer, you need to think from a project perspective. Your task is to create one question in Korean of {question_type} type within 200 characters. The content of the question should be based on your analysis of the {repo_info} and {resume_contents} and should be relevant to the {position}. Your question should be specific and creative.Don't explain what you are"
+            elif question_type == "cs":
+                prompt = f"You are participating as the company's CS expert and interviewer and should think from a ComputerScience perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less. The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}.The question you create should be specific and creative. Don't explain what you are"
+            elif question_type == "personality":
+                prompt = f"You're participating as both the company's HR representative and the interviewer, so think of it from that perspective.Your task is to create one Korean question of {question_type} type with 200 characters or less. The content of your question should include your analysis of the {repo_info} and {resume_contents} and your consideration of the {position}.The question you create should be specific and creative. Don't explain what you are"
 
 
-    #
-    # for question_type in question_types:
-    #     # prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_names}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
-    #     prompt = f"Say hello "
-    #     response = client.chat.completions.create(
-    #         model="gpt-3.5-turbo",
-    #         temperature=1,
-    #         messages=[
-    #             {
-    #                 "role": "system",
-    #                 "content": prompt
-    #             },
-    #
-    #         ]
-    #     )
-    #     print(response)
-    #
-    #     questions.append((response.choices[0].message.content.strip(), question_type))
-    #
-    # return questions
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            temperature=0.8,
+            messages=[
+                {
+                    "role": "system",
+                    "content": prompt
+                },
 
-    prompt = f"You are an interviewer for a company and you are interviewing a developer. The {resume_contents} is the content of the interviewer's resume. Your task is to write 1 Korean question of 200 characters or less and {question_types} related to {', '.join(type_names)}, {repo_name}, {position} based on the interviewer's resume. You can also refer to the previous question:{previous_question.content} and previous answer:{previous_answer.content} to create a tail-to-tail question or a different question from the previous one. Questions must be translated into Korean."
+            ]
+        )
+        questions.append((response.choices[0].message.content.strip(), question_type))
 
-    #프롬프트 생성
-     #prompt = f"Do not explain yourself and do not take more than 100 characters to summarize.  Summarize {previous_question.content} and {previous_answer.content}"
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        temperature=1,
-        messages=[
-            {
-                "role": "system",
-                "content": prompt
-            },
 
-        ]
-    )
-    questions.append((response.choices[0].message.content.strip(), "project"))
-
+    except Exception as e:
+        return Response("Failed to create questions with GPT: " + str(e))
     return questions
 
-    # # 어시스턴트 생성
-    # assistant = client.beta.assistants.create(
-    #     name="면접관",
-    #     instructions="면접관과 개발자의 면접을 진행할 때, 개발자의 이력서를 기반으로 면접 질문을 생성합니다. 질문은 한글로 작성되며, 200자 이내로 제한됩니다.",
-    #     model="gpt-4-1106-preview",
-    #     tools=[{"type": "retrieval"}]
-    # )
-    #
-    # # 스레드 생성
-    # interview_thread = client.beta.threads.create()
-    #
-    # # 스레드에 첫 번째 메시지 추가
-    # message = client.beta.threads.messages.create(
-    #     thread_id=interview_thread.id,
-    #     role="user",
-    #     content="면접을 시작합니다."
-    # )
-    #
-    # # Run이 완료되었는지 확인하는 함수 생성
-    # def poll_run(run, thread):
-    #     while run.status != "completed":
-    #         run = client.beta.threads.runs.retrieve(
-    #             thread_id=thread.id,
-    #             run_id=run.id,
-    #         )
-    #         time.sleep(0.5)
-    #     return run
-    #
-    # # Run을 초기화합니다.
-    # run = client.beta.threads.runs.create(
-    #     thread_id=interview_thread.id,
-    #     assistant_id=assistant.id,
-    #     content="면접을 시작합니다."
-    # )
-    #
-    # # 질문 유형 목록
-    # question_types = ["기술", "경력", "성격"]
-    #
-    # # 질문 생성
-    # for question_type in question_types:
-    #     # prompt = f"You are an interviewer at a company and are interviewing a developer. {resume_contents} is the contents of the interviewer's resume. Your task is to create only one question in Korean, not exceeding 200 characters, and {question_type} related to {type_names}, {repo_name} and {position} based on the interviewer's resume. Any questions you make must be translated into Korean."
-    #     prompt = f"면접관님, 개발자의 {question_type}에 대해 한 가지 질문을 드리겠습니다. {question_type}에 대한 질문은 다음과 같습니다."
-    #     response = client.beta.threads.runs.create(
-    #         thread_id=interview_thread.id,
-    #         assistant_id=assistant.id,
-    #         content=prompt,
-    #     )
-    #     run = poll_run(run, interview_thread)
-    #
-    #     questions.append((response.choices[0].message.content.strip(), question_type))
-    #
-    # # 질문 목록 반환
-    # return questions
 
 
 def save_question(questions, interview):

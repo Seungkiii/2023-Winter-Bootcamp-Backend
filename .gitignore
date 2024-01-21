@@ -189,3 +189,6 @@ images/
 
 monitor/prometheus/data/
 monitor/grafana/*.db
+
+**/migrations/*.py
+**/migrations/__init__.py
