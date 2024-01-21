@@ -1,18 +1,18 @@
 version: '3'
 
 services:
-  mysql:
-    container_name: mysql
-    image: mysql:latest
-    env_file:
-      - ./.env
-    # command:
-    #   - --character-set-server=utf8mb4
-    #   - --collation-server=utf8mb4_unicode_ci
-    networks:
-      - mynetwork
-    ports:
-      - 3306:3306
+  # mysql:
+  #   container_name: mysql
+  #   image: mysql:latest
+  #   env_file:
+  #     - ./.env
+  #   # command:
+  #   #   - --character-set-server=utf8mb4
+  #   #   - --collation-server=utf8mb4_unicode_ci
+  #   networks:
+  #     - mynetwork
+  #   ports:
+  #     - 3306:3306
 
   webapp:
     container_name: web_app
@@ -21,8 +21,8 @@ services:
     command: sh -c "python manage.py makemigrations && python manage.py migrate && test -d static || mkdir static && python manage.py collectstatic --noinput && gunicorn 'giterview.wsgi:application' --bind=0.0.0.0:8000 --reload"
     ports:
       - 8000:8000
-    depends_on:
-      - mysql
+    # depends_on:
+    #   - mysql
     networks:
       - mynetwork
     volumes:
