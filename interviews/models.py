@@ -36,7 +36,7 @@ class Type_Choice(models.Model):
   
 class Question(BaseModel):
   interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
-  content = models.CharField(max_length=255)
+  content = models.CharField(max_length=500)
   question_type = models.CharField(max_length=11, choices=[(tag.value, tag.name) for tag in QuestionType])
   
 class Answer(BaseModel):
