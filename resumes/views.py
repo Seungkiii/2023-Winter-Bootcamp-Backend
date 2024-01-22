@@ -1,5 +1,4 @@
 import uuid
-
 from django.core.files.storage import default_storage
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -85,7 +84,6 @@ class ResumeList(generics.ListAPIView):
     @swagger_auto_schema(operation_description="이력서 리스트를 반환합니다.")
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
-
 
 class EmptySerializer(serializers.Serializer):
     pass
