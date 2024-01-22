@@ -122,11 +122,11 @@ db_secret = AWSManager.get_secret("MYSQL")
 DATABASES = {
     "default": {
         "ENGINE": "django_prometheus.db.backends.mysql",
-        "NAME": os.getenv("AWS_RDS_DB_NAME"),
-        "USER": os.getenv("AWS_RDS_USER"),
-        "PASSWORD": os.getenv("AWS_RDS_PASSWORD"),
-        "HOST": os.getenv("AWS_RDS_HOST"),
-        "PORT": os.getenv("AWS_RDS_PORT"),
+        "NAME": os.getenv("MYSQL_DATABASE"),
+        "USER": os.getenv("MYSQL_USER"),
+        "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+        "HOST": os.getenv("MYSQL_HOST"),
+        "PORT": os.getenv("MYSQL_PORT"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
