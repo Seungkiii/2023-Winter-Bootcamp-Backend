@@ -140,7 +140,7 @@ class InterviewProcessView(APIView):
                         answer_serializer = AnswerCreateSerializer(answer)
                         return Response({
                             'answer': answer_serializer.data,
-                            'questions': question_serializer.data
+                            'question': question_serializer.data
                         }, status=status.HTTP_201_CREATED)
                     else:
                         return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
