@@ -134,11 +134,11 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
         
     # repository에서 추출한 파일 내용을 gpt로 요약
     if file_contents:
-      prompt = f'{file_contents} 이 코드의 내용을 보고 어떤 기술을 사용했는지 요약해줘. 100자 이내로'
-      
+      prompt = f'{file_contents} Summarize the main technology stacks and major libraries of this code in English words. List them only in words.'
+
       response = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            temperature=0.9,
+            temperature=0.5,
             max_tokens=400,
             messages=[
                 {
@@ -152,6 +152,7 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
 
     if repo_names:
       repo_summary_str = '\n'.join(repo_summary)  # 리스트를 문자열로 변환
+      print(repo_summary_str)
       for name in repo_names:
         Repository.objects.create(interview=interview, repo_name=name, repo_summary=repo_summary_str)
 
