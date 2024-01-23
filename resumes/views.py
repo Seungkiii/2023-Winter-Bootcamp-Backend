@@ -1,5 +1,4 @@
 import uuid
-
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.shortcuts import get_object_or_404
@@ -21,7 +20,6 @@ from io import BytesIO
 from PIL import Image
 from openai import OpenAI
 import os
-
 import io
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -123,7 +121,6 @@ class ResumeList(APIView):
         resumes = Resume.objects.filter(user_id=user_id)
         serializer = ResumeSerializer(resumes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 
