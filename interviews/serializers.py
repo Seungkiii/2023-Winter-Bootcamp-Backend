@@ -149,7 +149,6 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
             ]
         )
       repo_summary.append(response.choices[0].message.content.strip())
-      print(repo_summary)
 
     if repo_names:
       repo_summary_str = '\n'.join(repo_summary)  # 리스트를 문자열로 변환

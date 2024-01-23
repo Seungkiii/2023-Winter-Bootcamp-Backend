@@ -179,7 +179,9 @@ class InterviewResultView(APIView):
 # 면접 목록 조회 API
 class InterviewListView(APIView):
   def get(self, request):
-    interviews = Interview.objects.all()
+    user_id = request.user.id
+    
+    interviews = Interview.objects.filter(user_id=user_id)
     serializer = InterviewListSerializer(interviews, many=True)
       
     return Response(serializer.data)
