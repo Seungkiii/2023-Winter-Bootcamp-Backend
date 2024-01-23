@@ -1,9 +1,15 @@
 import uuid
+from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
+from django.shortcuts import get_object_or_404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import generics, status, serializers
+from rest_framework import generics, status, serializers, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.db.models.expressions import RawSQL
+from users.models import User
 from .models import Resume
 from .serializers import ResumeSerializer
 from PyPDF2 import PdfReader
@@ -12,9 +18,31 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from io import BytesIO
 from PIL import Image
-
+from openai import OpenAI
+import os
 import io
 
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
+
+def summary_gpt(text_contents):
+    contents = text_contents
+
+    prompt=f"Your task is to generate a concise Korean summary of a developer's resume: {contents} with 200 character or less. The provided data is the extracted text from the resume. Your summary should highlight key information such as the candidate's skills, experiences, projects, and education, cs, personality. It should be clear, concise, and easy to understand. Also, try to identify and emphasize details that might make the candidate stand out from others."
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=0,
+        max_tokens=400,
+        messages=[
+            {
+                "role": "system",
+                "content": prompt
+            },
+
+        ]
+    )
+
+    return response.choices[0].message.content.strip()
 
 class ResumeCreate(generics.CreateAPIView):
     queryset = Resume.objects.all()
@@ -44,6 +72,8 @@ class ResumeCreate(generics.CreateAPIView):
         for page in pdf:
             text_contents += page.get_text()
 
+        summary_contents = summary_gpt(text_contents)
+
         # PDF 첫 페이지를 이미지로 변환합니다.
         pix = pdf[0].get_pixmap()
         first_page = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
@@ -62,7 +92,7 @@ class ResumeCreate(generics.CreateAPIView):
         image_url = default_storage.url(file_name)
 
         data = {
-            'text_contents': text_contents,
+            'text_contents': summary_contents,
             'pre_image_url': image_url,
             'user_id': user_id,
             'title':title
@@ -76,14 +106,25 @@ class ResumeCreate(generics.CreateAPIView):
 
 
 #이력서 리스트 보여주는 뷰
-class ResumeList(generics.ListAPIView):
-    queryset = Resume.objects.filter(is_deleted=False)  # is_deleted가 False인 객체만 가져옵니다.
-    serializer_class = ResumeSerializer
-    http_method_names = ['get']
+# class ResumeList(generics.ListAPIView):
+#     queryset = Resume.objects.filter(is_deleted=False)  # is_deleted가 False인 객체만 가져옵니다.
+#     serializer_class = ResumeSerializer
+#     http_method_names = ['get']
+#
+#     @swagger_auto_schema(operation_description="이력서 리스트를 반환합니다.")
+#     def get(self, request, *args, **kwargs):
+#
+#         return super().get(request, *args, **kwargs)
+class ResumeList(APIView):
+    def get(self, request, format=None):
+        user_id = request.user.id
+        resumes = Resume.objects.filter(user_id=user_id)
+        serializer = ResumeSerializer(resumes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @swagger_auto_schema(operation_description="이력서 리스트를 반환합니다.")
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+
+
+
 
 class EmptySerializer(serializers.Serializer):
     pass
