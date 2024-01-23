@@ -65,6 +65,8 @@ class GithubCallbackView(APIView):
       
       try:
         user = User.objects.get(login_id=login_id)
+        user.access_token = access_token
+        user.save()
       
       except User.DoesNotExist:
         user = User.objects.create(
