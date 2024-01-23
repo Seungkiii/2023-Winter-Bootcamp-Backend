@@ -1,7 +1,13 @@
+import requests
 from rest_framework import serializers
 from .models import Interview_Type, Question, Interview, Type_Choice, Answer, Repository
 from .utils import create_questions_withgpt, save_question
+import openai
+import os
+from openai import OpenAI
 
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 # 면접 결과 조회 Serializer
 class InterviewResultSerializer(serializers.ModelSerializer):
@@ -82,7 +88,6 @@ class AnswerCreateSerializer(serializers.ModelSerializer):
 # 면접 목록 조회 Serializer
 class InterviewListSerializer(serializers.ModelSerializer):
   
-  
   class Meta:
     model = Interview
     fields = ['id', 'title']
@@ -103,15 +108,53 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
               'type_names_display']
 
   def create(self, validated_data):
-    repo_names = validated_data.pop('repo_names', None)
     type_names = validated_data.pop('type_names', None)
     resume_id = validated_data.pop('resume', None)
+    repo_names = validated_data.pop('repo_names', None)
+    user = validated_data.get('user')
+    if not user:
+      raise serializers.ValidationError("User must be provided")
+    
+    # User 테이블에서 access_token을 가져옴
+    access_token = user.access_token
+    if not access_token:
+      raise serializers.ValidationError("User does not have an access token")
 
     interview = Interview.objects.create(resume_id=resume_id, **validated_data)
+    
+    repo_summary = []
+    file_contents = []
+    
+    if user:
+      username = user.username
+      
+      for repo_name in repo_names:
+        file_content = self.get_repo_file_content(username, repo_name, access_token)
+        file_contents.extend(file_content)
+        
+    # repository에서 추출한 파일 내용을 gpt로 요약
+    if file_contents:
+      prompt = f'{file_contents} Summarize the main technology stacks and major libraries of this code in English words. List them only in words.'
+
+      response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            temperature=0.5,
+            max_tokens=400,
+            messages=[
+                {
+                    "role": "system",
+                    "content": prompt
+                },
+
+            ]
+        )
+      repo_summary.append(response.choices[0].message.content.strip())
 
     if repo_names:
+      repo_summary_str = '\n'.join(repo_summary)  # 리스트를 문자열로 변환
+      print(repo_summary_str)
       for name in repo_names:
-        Repository.objects.create(interview=interview, repo_name=name)
+        Repository.objects.create(interview=interview, repo_name=name, repo_summary=repo_summary_str)
 
     if type_names:
       for name in type_names:
@@ -130,6 +173,30 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
     Question.objects.create(content=question, question_type=Question.question_type, interview=interview)
 
     return interview
+  
+  # username과 repo_name을 이용해 파일 내용을 추출하는 함수
+  def get_repo_file_content(self, username, repo_name, access_token):
+    headers = {'Authorization': f'token {access_token}'}
+    search_url = f'https://api.github.com/search/code?q=filename:package.json+OR+filename:build.gradle+repo:{username}/{repo_name}'
+    search_response = requests.get(search_url, headers=headers)
+    if search_response.status_code == 200:
+      items = search_response.json().get('items', [])
+      file_contents = []
+      
+      for item in items:
+        file_url = item.get('url')
+        if file_url:
+          file_details_response = requests.get(file_url)
+          if file_details_response.status_code == 200:
+            download_url = file_details_response.json().get('download_url')
+            if download_url:
+              file_content_response = requests.get(download_url)
+              if file_content_response.status_code == 200:
+                file_contents.append(file_content_response.text)
+      
+      return file_contents
+    
+    return None
 
   def create_interviews(self, validated_data):
     interview = Interview.objects.create(**validated_data)
@@ -153,11 +220,6 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
 
   def get_type_names_display(self, obj):
     return [type_choice.interview_type.type_name for type_choice in obj.type_choice_set.all()]
-
-
-
-
-
 
 #질문 생성
 class QuestionCreateSerializer(serializers.ModelSerializer):

@@ -47,3 +47,4 @@ class Answer(BaseModel):
 class Repository(BaseModel):
   interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
   repo_name = models.CharField(max_length=255)
+  repo_summary = models.TextField()

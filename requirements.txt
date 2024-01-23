@@ -56,6 +56,7 @@ pathspec==0.11.1
 platformdirs==3.8.1
 prometheus-client==0.17.1
 prompt-toolkit==3.0.39
+pymysql==1.1.0
 pycodestyle==2.10.0
 pycparser==2.21
 pyflakes==3.0.1

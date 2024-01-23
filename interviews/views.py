@@ -113,56 +113,35 @@ class AnswerCreateView(APIView):
 
 
 class InterviewProcessView(APIView):
-    #parser_classes = [parsers.MultiPartParser, parsers.FormParser]
     def post(self, request, interview_id, question_id, *args, **kwargs):
-        request.data['question'] = question_id  # AnswerCreateSerializer에 필요한 question 필드 추가
-        request.data['interview'] = interview_id  # QuestionCreateSerializer에 필요한 interview 필드 추가
-
-        # type_name_json = request.data.get('type_name')
-        # if type_name_json:
-        #     try:
-        #         type_name = json.loads(type_name_json)
-        #     except json.JSONDecodeError:
-        #         return Response({'error': 'Invalid JSON format'}, status=400)
-        # else:
-        #     type_name = None
-
+        request.data['question'] = question_id
+        request.data['interview'] = interview_id
         serializer = AnswerCreateSerializer(data=request.data)
         if serializer.is_valid():
-            # 파일 객체 가져오기
             record_file = request.FILES.get('record_url')
-
-            # 음성 파일 url 변환
             record_url, file_key = handle_uploaded_file_s3(record_file)
             record_binary = binary(file_key)
-
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
             temp_file_path = temp_file.name
-
-            # 임시 음성 파일 생성
             with open(temp_file_path, "wb") as file:
                 file.write(record_binary)
-
             with open(temp_file_path, "rb") as temp_file:
-                # Whisper API로 텍스트 변환
                 if temp_file:
-                    # 음성 파일을 text로 변환
                     transcript = generate_corrected_transcript(0, system_prompt, temp_file)
                     content = transcript
 
-                    answer = serializer.save(content=content, record_url=record_url)  # Answer 객체 저장
+                    answer = serializer.save(content=content, record_url=record_url)
 
                     question_serializer = QuestionCreateSerializer(data=request.data)
-                    if question_serializer.is_valid():
-                        created_questions = question_serializer.save()  # Question 객체 리스트 저장
-                        for question in created_questions:
 
-                            question_serializer = QuestionCreateSerializer(question)  # 개별 객체 직렬화
-                            answer_serializer = AnswerCreateSerializer(answer)  # Answer 객체 직렬화
-                            return Response({
-                                'answer': answer_serializer.data,
-                                'question': question_serializer.data
-                            }, status=status.HTTP_201_CREATED)
+                    if question_serializer.is_valid():
+                        created_questions = question_serializer.save()
+                        question_serializer = QuestionCreateSerializer(created_questions, many=True)
+                        answer_serializer = AnswerCreateSerializer(answer)
+                        return Response({
+                            'answer': answer_serializer.data,
+                            'question': question_serializer.data
+                        }, status=status.HTTP_201_CREATED)
                     else:
                         return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 else:
@@ -200,7 +179,9 @@ class InterviewResultView(APIView):
 # 면접 목록 조회 API
 class InterviewListView(APIView):
   def get(self, request):
-    interviews = Interview.objects.all()
+    user_id = request.user.id
+    
+    interviews = Interview.objects.filter(user_id=user_id)
     serializer = InterviewListSerializer(interviews, many=True)
       
     return Response(serializer.data)
@@ -213,5 +194,3 @@ class InterviewCreateView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-

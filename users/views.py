@@ -65,13 +65,16 @@ class GithubCallbackView(APIView):
       
       try:
         user = User.objects.get(login_id=login_id)
+        user.access_token = access_token
+        user.save()
       
       except User.DoesNotExist:
         user = User.objects.create(
           login_id=login_id,
           username=username,
           html_url=html_url,
-          repos_url=repos_url
+          repos_url=repos_url,
+          access_token=access_token
         )
         user.save()
         messages.success(request, f"{username} logged in with Github")

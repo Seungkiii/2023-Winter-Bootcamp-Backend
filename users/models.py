@@ -27,6 +27,7 @@ class User(AbstractBaseUser, PermissionsMixin):
   username = models.CharField(max_length=50, unique=True)
   html_url = models.URLField(max_length=500, null=True)
   repos_url = models.URLField(max_length=500, null=True)
+  access_token = models.CharField(max_length=60, blank=True, null=True)
   
   created_at = models.DateTimeField(auto_now_add=True)
   updated_at = models.DateTimeField(auto_now=True)
@@ -37,3 +38,5 @@ class User(AbstractBaseUser, PermissionsMixin):
   
   USERNAME_FIELD = 'username'
   REQUIRED_FIELDS = ['login_id']
+
+  
