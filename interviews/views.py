@@ -1,12 +1,11 @@
 import json
 import tempfile
-
 import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, parsers
 from django.core.exceptions import ObjectDoesNotExist
-from .models import Interview
+from .models import Answer, Interview, Question
 from .serializers import QuestionListSerializer, AnswerCreateSerializer, InterviewResultSerializer, \
     InterviewListSerializer, InterviewCreateSerializer, QuestionCreateSerializer
 from openai import OpenAI
@@ -228,8 +227,22 @@ class InterviewListView(APIView):
   def get(self, request):
     user_id = request.user.id
     
-    interviews = Interview.objects.filter(user_id=user_id)
-    serializer = InterviewListSerializer(interviews, many=True)
+    # user의 모든 interview를 조회
+    interviews = Interview.objects.filter(user=user_id)
+    
+    # question이 있고 question과 answer의 개수가 일치하는 interview만 filter
+    valid_interviews = []
+    for interview in interviews:
+        questions = Question.objects.filter(interview=interview)
+        if not questions.exists():
+            continue
+        
+        # 모든 question에 대한 answer이 있는지 확인
+        all_answered = all(Answer.objects.filter(question=question).exists() for question in questions)
+        if all_answered:    # 모든 question에 대한 answer이 있는 경우
+            valid_interviews.append(interview)
+    
+    serializer = InterviewListSerializer(valid_interviews, many=True)
       
     return Response(serializer.data)
 
