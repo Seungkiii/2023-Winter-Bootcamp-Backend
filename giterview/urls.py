@@ -57,16 +57,3 @@ urlpatterns += [
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-"""
-urlpatterns = [
-    path("api/questions", Questions.as_view()),
-    path("api/characters", Characters.as_view()),
-    path("api/characters/", include("character.urls")),
-    path("api/register", RegisterView.as_view(), name="register"),
-    path("api/login", LoginView.as_view(), name="login"),
-    path("api/logout", LogoutView.as_view(), name="logout"),
-    path("api/extract-phrases", nlpAPI.as_view(), name="extract-phrases"),
-    path("api/health", health_check.as_view(), name="health-check"),
-]
-"""

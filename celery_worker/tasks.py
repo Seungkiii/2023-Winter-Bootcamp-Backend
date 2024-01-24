@@ -1,21 +1,29 @@
-# import uuid
-# import redis
-# import asyncio
-# import logging
+import os
+import uuid
+import redis
+import boto3
+import asyncio
+import logging
 
-# from .celery import app
+from .celery import app
+
+from uuid import uuid4
+from openai import OpenAI
+from django.core.files import File
+from botocore.exceptions import NoCredentialsError
+from interviews.utils import handle_uploaded_file_s3
+from interviews.serializers import AnswerCreateSerializer, QuestionCreateSerializer
+
 # from common.aws import AWSManager
-# from character.models import Submit
 # from api.api import upload_img_to_s3
 # from api.imageGenAPI import ImageGenAPI
 
-# MAX_CONCURRENT_REQUESTS = 3
+MAX_CONCURRENT_REQUESTS = 3
 
-# redis_client = redis.StrictRedis(host="redis", port=6379, db=2)
+redis_client = redis.StrictRedis(host="redis", port=6379, db=2)
 
-# logging.basicConfig(level="INFO")
-# logger = logging.getLogger(__name__)
-
+logging.basicConfig(level="INFO")
+logger = logging.getLogger(__name__)
 
 # # ## 아직 작업 중 시작
 # def get_ImageCreator_Cookie():
@@ -63,54 +71,138 @@
 #     finally:
 #         redis_client.decr(key)
 
+system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company."
 
-# @app.task(bind=True)
-# def create_character(self, submit_id, keywords, duplicate=False):
-#     cookie_index, auth_cookie = get_round_robin_key()
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
-#     key = "concurrent_requests_" + str(cookie_index)
+def binary(key):
+    s3_client = boto3.client('s3')
+    bucket_name = 'resume7946'  # 여기에 실제 버킷 이름을 넣어주세요.
 
-#     lock_acquired = False
+    try:
+        response = s3_client.get_object(Bucket=bucket_name, Key=key)
+        audio_file = response['Body'].read()
 
-#     try:
-#         logger.info(keywords)
+        return audio_file
+    except NoCredentialsError:
+        return {"error": "S3 credential is missing"}
+     
+# Whisper API로 오디오를 텍스트로 변환하는 메소드
+def transcribe(audio_file):
+    transcript = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+        response_format="text"
+    )
 
-#         # prompt = f'{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 "{keywords[5]}" 스타일 {keywords[4]} {keywords[0]} character'
-#         # prompt = f'{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 "{keywords[5]}" 스타일 {keywords[4]} {keywords[0]} 캐릭터'
-#         prompt = f"{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 {keywords[5]} 스타일 {keywords[4]} {keywords[0]} 캐릭터"
-#         # prompt = f"{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 {keywords[5]} 스타일 {keywords[4]} {keywords[0]} non-human 캐릭터"
+    return transcript
 
-#         # prompt = "학교에서 가방착용하고 맥북들고있는 디즈니 스타일 빨간색 햄스터 캐릭터"
-#         # prompt = "학교에서  안경착용하고 맥북 타이핑 거북이 디즈니 스타일  non human 캐릭터"
-#         # prompt = "학교에서 안경착용하고 맥북들고있는 거북이 디즈니 스타일 non human 캐릭터"
+def generate_corrected_transcript(temperature, system_prompt, audio_file):
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=temperature,
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": transcribe(audio_file)
+            }
+        ]
+    )
+    return response.choices[0].message.content
 
-#         logger.info(prompt)
+@app.task(bind=True)
+def process_interview(self, data, temp_file_path, is_last):
+    try:
+        # logger.info(keywords)
 
-#         lock_owner = str(uuid.uuid4())
+        # loop = asyncio.get_event_loop()
+        # result_url, _ = loop.run_until_complete(create_image(key, auth_cookie, prompt))
 
-#         while not lock_acquired:
-#             lock_acquired = redis_client.setnx(key + ":lock", lock_owner)  # 락 설정
-#             if lock_acquired:
-#                 redis_client.expire(key + ":lock", 16)  # 락의 자동 만료 설정
-#                 print("get lock " + key + ":lock " + lock_owner)
-#                 logger.info("get lock " + key + ":lock " + lock_owner)
+        # R-Rate Limit
 
-#         loop = asyncio.get_event_loop()
-#         result_url, _ = loop.run_until_complete(create_image(key, auth_cookie, prompt))
+        with open(temp_file_path, "rb") as temp_file:
+            record_file = File(temp_file)
+            data['record_url'] = record_file
 
-#         if duplicate:
-#             result_url = upload_img_to_s3(result_url[0])
+            serializer = AnswerCreateSerializer(data=data)
+            if serializer.is_valid():
+                if temp_file:
+                    # 음성 파일을 text로 변환
+                    content = generate_corrected_transcript(0, system_prompt, temp_file)[:500]
+                    record_file.seek(0)
+                    record_url, _ = handle_uploaded_file_s3(record_file)
 
-#             submit = Submit.objects.get(id=submit_id)
-#             submit.result_url = result_url
-#             submit.save()
+                    print(type(content), len(content))
 
-#         return {"result_url": result_url, "submit_id": submit_id, "keyword": keywords}
-#     except Exception as e:
-#         self.update_state(state="FAILURE")
+                    answer = serializer.save(content=content, record_url=record_url)
+                
+                print("IS LAST", is_last)
 
-#         raise ValueError("Some condition is not met. " + str(e))
-#     finally:
-#         if redis_client.get(key + ":lock") == lock_owner:
-#             redis_client.delete(key + ":lock")  # 락 해제
-#             print("delete lock " + key + ":lock " + lock_owner)
+                if is_last:
+                    return {}
+                
+                question_serializer = QuestionCreateSerializer(data=data)
+                if question_serializer.is_valid():
+                    created_questions = question_serializer.save()
+                    question_serializer = QuestionCreateSerializer(created_questions, many=True)
+                    answer_serializer = AnswerCreateSerializer(answer)                        
+                    return {
+                        "answer": answer_serializer.data,
+                        "question": question_serializer.data
+                    }
+                else:
+                    raise ValueError(question_serializer.errors)
+            else:
+                raise ValueError(serializer.errors)
+    except Exception as e:
+        self.update_state(state="FAILURE")
+        raise ValueError("Some condition is not met. " + str(e))
+    finally:
+        # if redis_client.get(key + ":lock") == lock_owner:
+        #     redis_client.delete(key + ":lock")  # 락 해제
+        #     print("delete lock " + key + ":lock " + lock_owner)
+        
+        os.remove(temp_file_path)
+
+@app.task(bind=True)
+def create_character(self, submit_id, keywords, duplicate=False):
+    cookie_index, auth_cookie = get_round_robin_key()
+
+    key = "concurrent_requests_" + str(cookie_index)
+
+    lock_acquired = False
+
+    try:
+        lock_owner = str(uuid.uuid4())
+
+        while not lock_acquired:
+            lock_acquired = redis_client.setnx(key + ":lock", lock_owner)  # 락 설정
+            if lock_acquired:
+                redis_client.expire(key + ":lock", 16)  # 락의 자동 만료 설정
+                print("get lock " + key + ":lock " + lock_owner)
+                logger.info("get lock " + key + ":lock " + lock_owner)
+
+        loop = asyncio.get_event_loop()
+        result_url, _ = loop.run_until_complete(create_image(key, auth_cookie, prompt))
+
+        if duplicate:
+            result_url = upload_img_to_s3(result_url[0])
+
+            submit = Submit.objects.get(id=submit_id)
+            submit.result_url = result_url
+            submit.save()
+
+        return {"result_url": result_url, "submit_id": submit_id, "keyword": keywords}
+    except Exception as e:
+        self.update_state(state="FAILURE")
+
+        raise ValueError("Some condition is not met. " + str(e))
+    finally:
+        if redis_client.get(key + ":lock") == lock_owner:
+            redis_client.delete(key + ":lock")  # 락 해제
+            print("delete lock " + key + ":lock " + lock_owner)

@@ -16,15 +16,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 SECRET_KEY = AWSManager.get_secret("DJANGO")["SECRET_KEY"]
 
-# HOST = os.environ.get("HOST_IP")
-# HOST = "0.0.0.0"
-
-# env = os.environ.Env(
-#     DEBUG=(bool, False)
-# )
-#
-# os.environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -69,12 +60,6 @@ INSTALLED_APPS = [
     "drf_yasg",
     "rest_framework",
 
-    # "daphne",
-    "storages",
-
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-
     "django_celery_beat",
     "django_celery_results",
     "django_prometheus",
@@ -92,7 +77,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    # "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -125,7 +110,7 @@ DATABASES = {
         "NAME": os.getenv("MYSQL_DATABASE"),
         "USER": os.getenv("MYSQL_USER"),
         "PASSWORD": os.getenv("MYSQL_PASSWORD"),
-        "HOST": 'mysql',
+        "HOST": os.getenv("MYSQL_HOST"),
         "PORT": os.getenv("MYSQL_PORT"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -166,23 +151,6 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = "static/"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
-
-
-# MEDIA_URL = "/media/"
-# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-# # Celery
-# # CELERY_BROKER_URL = 'amqp://tojaman:4886@localhost:15672/'  # RabbitMQ 연결 URL
-# # CELERY_BROKER_URL = 'amqp://tojaman:4886@127.0.0.1:5672/'
-# CELERY_BROKER_URL = 'amqp://localhost'  # 로컬 테스트용
-CELERY_BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_ACCEPT_CONTENT = ["application/json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
 
 
 # ###AWS#### AWS 액세스 키 설정

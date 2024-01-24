@@ -6,9 +6,6 @@ services:
     image: mysql:latest
     env_file:
       - ./.env
-    # command:
-    #   - --character-set-server=utf8mb4
-    #   - --collation-server=utf8mb4_unicode_ci
     networks:
       - mynetwork
     ports:
@@ -28,6 +25,7 @@ services:
       - mynetwork
     volumes:
       - ./:/usr/src/app
+      - shared_volume:/tmp
 
   rabbit:
     container_name: rabbitmq
@@ -37,34 +35,34 @@ services:
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
     ports:
-      - '5672:5672'
-      - '15672:15672'
-    expose:
-      - '15672'
+      - 5672:5672
+      - 15672:15672
     networks:
       - mynetwork
 
-  celery_worker:
+  celery:
     container_name: celery_worker
     build: .
-    command: sh -c "celery -A giterview worker -l info"
-    ports: []
+    command: sh -c "celery -A celery_worker worker -l info"
     depends_on:
-      - mysql
       - rabbit
-      - webapp
+      - redis
     networks:
       - mynetwork
     volumes:
       - ./celery_worker:/usr/src/app/celery_worker
+      - shared_volume:/tmp
 
-  # redis:
-  #   container_name: redis
-  #   image: redis:latest
-  #   hostname: redis
-  #   networks:
-  #     - mynetwork
+  redis:
+    container_name: redis
+    image: redis:latest
+    hostname: redis
+    networks:
+      - mynetwork
 
 networks:
   mynetwork:
     driver: bridge
+
+volumes:
+  shared_volume:
