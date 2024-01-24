@@ -92,7 +92,7 @@ class InterviewListSerializer(serializers.ModelSerializer):
   
   class Meta:
     model = Interview
-    fields = ['id', 'title']
+    fields = ['id', 'title', 'created_at']
 
 # 면접 생성 Serializer
 class InterviewCreateSerializer(serializers.ModelSerializer):
