@@ -4,6 +4,7 @@ from django.urls import reverse
 from dotenv import load_dotenv
 import os
 import requests
+import base64
 from django.shortcuts import redirect
 from .models import User
 from .exceptions import GithubException, SocialLoginException
@@ -11,6 +12,7 @@ from rest_framework.views import APIView
 from .serializers import UserSerializer
 from rest_framework.response import Response
 from rest_framework import status
+from common.encrypt_util import encrypt_token
 
 load_dotenv()
 
@@ -38,6 +40,9 @@ class GithubCallbackView(APIView):
         raise GithubException("Cant' get access token")
       
       access_token = token_json.get("access_token")
+      encrypted_token = encrypt_token(access_token) # access_token 암호화
+      encoded_token = base64.urlsafe_b64encode(encrypted_token).decode('utf-8') # base64 인코딩
+      
       profile_request = requests.get(
         "https://api.github.com/user",
         headers={
@@ -65,6 +70,8 @@ class GithubCallbackView(APIView):
       
       try:
         user = User.objects.get(login_id=login_id)
+        user.access_token = encoded_token
+        user.save()
       
       except User.DoesNotExist:
         user = User.objects.create(
@@ -72,7 +79,7 @@ class GithubCallbackView(APIView):
           username=username,
           html_url=html_url,
           repos_url=repos_url,
-          access_token=access_token
+          access_token=encoded_token
         )
         user.save()
         messages.success(request, f"{username} logged in with Github")
