@@ -1,13 +1,22 @@
+import os
 import uuid
 import redis
+import boto3
 import asyncio
 import logging
 
 from .celery import app
-from common.aws import AWSManager
-from character.models import Submit
-from api.api import upload_img_to_s3
-from api.imageGenAPI import ImageGenAPI
+
+from uuid import uuid4
+from openai import OpenAI
+from django.core.files import File
+from botocore.exceptions import NoCredentialsError
+from interviews.utils import handle_uploaded_file_s3
+from interviews.serializers import AnswerCreateSerializer, QuestionCreateSerializer
+
+# from common.aws import AWSManager
+# from api.api import upload_img_to_s3
+# from api.imageGenAPI import ImageGenAPI
 
 MAX_CONCURRENT_REQUESTS = 3
 
@@ -16,53 +25,149 @@ redis_client = redis.StrictRedis(host="redis", port=6379, db=2)
 logging.basicConfig(level="INFO")
 logger = logging.getLogger(__name__)
 
+# # ## 아직 작업 중 시작
+# def get_ImageCreator_Cookie():
+#     try:
+#         cookie = []
+#         for i in range(2):
+#             cookie_key = "cookie" + str(i + 1)
+#             cookie.append(AWSManager.get_secret("BingImageCreator")[cookie_key])
+#         return cookie
+#     except Exception as e:
+#         raise Exception("BingImageCreator API 키를 가져오는 데 실패했습니다.") from e
 
-# ## 아직 작업 중 시작
-def get_ImageCreator_Cookie():
+
+# auth_cookies = get_ImageCreator_Cookie()
+# print("auth_cookies", *auth_cookies)
+# # ## 아직 작업 중 끝
+
+# app.conf.update({"worker_concurrency": MAX_CONCURRENT_REQUESTS * len(auth_cookies)})
+
+
+# def get_round_robin_key():
+#     cookie_index = redis_client.incr("cookie_index")
+#     cookie_index %= len(auth_cookies)
+#     return cookie_index, auth_cookies[cookie_index]
+
+
+# async def create_image(key, auth_cookie, prompt):
+#     while True:
+#         current_requests = redis_client.incr(key)
+#         if current_requests <= MAX_CONCURRENT_REQUESTS:
+#             redis_client.delete(key + ":lock")  # 락 해제
+#             print("get request approval " + str(current_requests))
+#             print("delete lock " + key + ":lock")
+#             break
+#         else:
+#             redis_client.decr(key)
+#             await asyncio.sleep(1)
+
+#     try:
+#         image_generator = ImageGenAPI(auth_cookie)
+#         result = await image_generator.get_images(prompt)
+#         return result
+#     except Exception as e:
+#         raise e
+#     finally:
+#         redis_client.decr(key)
+
+system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company."
+
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
+
+def binary(key):
+    s3_client = boto3.client('s3')
+    bucket_name = 'resume7946'  # 여기에 실제 버킷 이름을 넣어주세요.
+
     try:
-        cookie = []
-        for i in range(2):
-            cookie_key = "cookie" + str(i + 1)
-            cookie.append(AWSManager.get_secret("BingImageCreator")[cookie_key])
-        return cookie
-    except Exception as e:
-        raise Exception("BingImageCreator API 키를 가져오는 데 실패했습니다.") from e
+        response = s3_client.get_object(Bucket=bucket_name, Key=key)
+        audio_file = response['Body'].read()
 
+        return audio_file
+    except NoCredentialsError:
+        return {"error": "S3 credential is missing"}
+     
+# Whisper API로 오디오를 텍스트로 변환하는 메소드
+def transcribe(audio_file):
+    transcript = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+        response_format="text"
+    )
 
-auth_cookies = get_ImageCreator_Cookie()
-print("auth_cookies", *auth_cookies)
-# ## 아직 작업 중 끝
+    return transcript
 
-app.conf.update({"worker_concurrency": MAX_CONCURRENT_REQUESTS * len(auth_cookies)})
+def generate_corrected_transcript(temperature, system_prompt, audio_file):
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        temperature=temperature,
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": transcribe(audio_file)
+            }
+        ]
+    )
+    return response.choices[0].message.content
 
-
-def get_round_robin_key():
-    cookie_index = redis_client.incr("cookie_index")
-    cookie_index %= len(auth_cookies)
-    return cookie_index, auth_cookies[cookie_index]
-
-
-async def create_image(key, auth_cookie, prompt):
-    while True:
-        current_requests = redis_client.incr(key)
-        if current_requests <= MAX_CONCURRENT_REQUESTS:
-            redis_client.delete(key + ":lock")  # 락 해제
-            print("get request approval " + str(current_requests))
-            print("delete lock " + key + ":lock")
-            break
-        else:
-            redis_client.decr(key)
-            await asyncio.sleep(1)
-
+@app.task(bind=True)
+def process_interview(self, data, temp_file_path, is_last):
     try:
-        image_generator = ImageGenAPI(auth_cookie)
-        result = await image_generator.get_images(prompt)
-        return result
+        # logger.info(keywords)
+
+        # loop = asyncio.get_event_loop()
+        # result_url, _ = loop.run_until_complete(create_image(key, auth_cookie, prompt))
+
+        # R-Rate Limit
+
+        with open(temp_file_path, "rb") as temp_file:
+            record_file = File(temp_file)
+            data['record_url'] = record_file
+
+            serializer = AnswerCreateSerializer(data=data)
+            if serializer.is_valid():
+                if temp_file:
+                    # 음성 파일을 text로 변환
+                    content = generate_corrected_transcript(0, system_prompt, temp_file)[:500]
+                    record_file.seek(0)
+                    record_url, _ = handle_uploaded_file_s3(record_file)
+
+                    print(type(content), len(content))
+
+                    answer = serializer.save(content=content, record_url=record_url)
+                
+                print("IS LAST", is_last)
+
+                if is_last:
+                    return {}
+                
+                question_serializer = QuestionCreateSerializer(data=data)
+                if question_serializer.is_valid():
+                    created_questions = question_serializer.save()
+                    question_serializer = QuestionCreateSerializer(created_questions, many=True)
+                    answer_serializer = AnswerCreateSerializer(answer)                        
+                    return {
+                        "answer": answer_serializer.data,
+                        "question": question_serializer.data
+                    }
+                else:
+                    raise ValueError(question_serializer.errors)
+            else:
+                raise ValueError(serializer.errors)
     except Exception as e:
-        raise e
+        self.update_state(state="FAILURE")
+        raise ValueError("Some condition is not met. " + str(e))
     finally:
-        redis_client.decr(key)
-
+        # if redis_client.get(key + ":lock") == lock_owner:
+        #     redis_client.delete(key + ":lock")  # 락 해제
+        #     print("delete lock " + key + ":lock " + lock_owner)
+        
+        os.remove(temp_file_path)
 
 @app.task(bind=True)
 def create_character(self, submit_id, keywords, duplicate=False):
@@ -73,19 +178,6 @@ def create_character(self, submit_id, keywords, duplicate=False):
     lock_acquired = False
 
     try:
-        logger.info(keywords)
-
-        # prompt = f'{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 "{keywords[5]}" 스타일 {keywords[4]} {keywords[0]} character'
-        # prompt = f'{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 "{keywords[5]}" 스타일 {keywords[4]} {keywords[0]} 캐릭터'
-        prompt = f"{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 {keywords[5]} 스타일 {keywords[4]} {keywords[0]} 캐릭터"
-        # prompt = f"{keywords[3]}에서 {keywords[1]}착용하고 {keywords[2]}들고있는 {keywords[5]} 스타일 {keywords[4]} {keywords[0]} non-human 캐릭터"
-
-        # prompt = "학교에서 가방착용하고 맥북들고있는 디즈니 스타일 빨간색 햄스터 캐릭터"
-        # prompt = "학교에서  안경착용하고 맥북 타이핑 거북이 디즈니 스타일  non human 캐릭터"
-        # prompt = "학교에서 안경착용하고 맥북들고있는 거북이 디즈니 스타일 non human 캐릭터"
-
-        logger.info(prompt)
-
         lock_owner = str(uuid.uuid4())
 
         while not lock_acquired:

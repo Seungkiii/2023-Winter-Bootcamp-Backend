@@ -13,6 +13,9 @@ from openai import OpenAI
 from .utils import handle_uploaded_file_s3
 import boto3
 from botocore.exceptions import NoCredentialsError
+from celery_worker.tasks import process_interview
+from celery.result import AsyncResult
+
 from dotenv import load_dotenv
 import os
 
@@ -32,7 +35,6 @@ def binary(key):
         return audio_file
     except NoCredentialsError:
         return {"error": "S3 credential is missing"}
-
 
 # Whisper API로 오디오를 텍스트로 변환하는 메소드
 def transcribe(audio_file):
@@ -80,36 +82,58 @@ class QuestionView(APIView):
 # 면접 답변 등록 API
 class AnswerCreateView(APIView):
     def post(self, request, *args, **kwargs):
+        # serializer = AnswerCreateSerializer(data=request.data)
+        # if serializer.is_valid():
+        #   # 파일 객체 가져오기
+        #   record_file = request.FILES.get('record_url')
+          
+        #   # 음성 파일 url 변환
+        #   record_url, file_key = handle_uploaded_file_s3(record_file)
+        #   record_binary = binary(file_key)
+          
+        #   temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
+        #   temp_file_path = temp_file.name
+          
+        #   # 임시 음성 파일 생성
+        #   with open(temp_file_path, "wb") as file:
+        #     file.write(record_binary)
+                
+        #   with open(temp_file_path, "rb") as temp_file:
+        #     # Whisper API로 텍스트 변환
+        #     if temp_file:
+        #       # 음성 파일을 text로 변환
+        #       transcript = generate_corrected_transcript(0, system_prompt, temp_file)
+        #       content = transcript
+        #       print(content)
+            
+        #       serializer.save(content=content, record_url=record_url)
+        #       answer = serializer.save(content=content, record_url=record_url)
+        #       return Response(status=status.HTTP_200_OK)
+        #     else:
+        #       return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        # else:
+        #   return Response(serializer.errors, status=400)
+        
         serializer = AnswerCreateSerializer(data=request.data)
         if serializer.is_valid():
-          # 파일 객체 가져오기
-          record_file = request.FILES.get('record_url')
-          
-          # 음성 파일 url 변환
-          record_url, file_key = handle_uploaded_file_s3(record_file)
-          record_binary = binary(file_key)
-          
-          temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
-          temp_file_path = temp_file.name
-          
-          # 임시 음성 파일 생성
-          with open(temp_file_path, "wb") as file:
-            file.write(record_binary)
-                
-          with open(temp_file_path, "rb") as temp_file:
-            # Whisper API로 텍스트 변환
-            if temp_file:
-              # 음성 파일을 text로 변환
-              transcript = generate_corrected_transcript(0, system_prompt, temp_file)
-              content = transcript
-              print(content)
+            record_file = request.FILES.get('record_url')
+
+            if record_file is None:
+                return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
             
-              serializer.save(content=content, record_url=record_url)
-              return Response(status=status.HTTP_200_OK)
-            else:
-              return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            temp_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+
+            with open(temp_file_path, "wb") as file:
+                for chunk in record_file.chunks():
+                    file.write(chunk)
+
+            request.data['record_url'] = None
+
+            task = process_interview.delay(request.data, temp_file_path, True)
+
+            return Response({"task_id": task.id}, status=status.HTTP_201_CREATED)
         else:
-          return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class InterviewProcessView(APIView):
@@ -118,37 +142,60 @@ class InterviewProcessView(APIView):
         request.data['interview'] = interview_id
         serializer = AnswerCreateSerializer(data=request.data)
         if serializer.is_valid():
+            is_last = request.data.get('is_last', False)
+
             record_file = request.FILES.get('record_url')
-            record_url, file_key = handle_uploaded_file_s3(record_file)
-            record_binary = binary(file_key)
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
-            temp_file_path = temp_file.name
+
+            if record_file is None:
+                return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            temp_file_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
+
             with open(temp_file_path, "wb") as file:
-                file.write(record_binary)
-            with open(temp_file_path, "rb") as temp_file:
-                if temp_file:
-                    transcript = generate_corrected_transcript(0, system_prompt, temp_file)
-                    content = transcript
+                for chunk in record_file.chunks():
+                    file.write(chunk)
 
-                    answer = serializer.save(content=content, record_url=record_url)
+            request.data['record_url'] = None
 
-                    question_serializer = QuestionCreateSerializer(data=request.data)
+            task = process_interview.delay(request.data, temp_file_path, is_last)
 
-                    if question_serializer.is_valid():
-                        created_questions = question_serializer.save()
-                        question_serializer = QuestionCreateSerializer(created_questions, many=True)
-                        answer_serializer = AnswerCreateSerializer(answer)
-                        return Response({
-                            'answer': answer_serializer.data,
-                            'question': question_serializer.data
-                        }, status=status.HTTP_201_CREATED)
-                    else:
-                        return Response(question_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    return Response({'error': 'No audio file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"task_id": task.id, "wait_time": 4}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class TaskResultView(APIView):
+    def get(self, request, task_id):
+        user_id = request.user.id
+        print("user_id", user_id)
+
+        task = AsyncResult(task_id)
+
+        total_delay = 4
+        num_checks = 2  # check 2 per 1s
+        delay = total_delay / num_checks
+
+        for _ in range(num_checks):
+            task_done = task.ready()
+            if task_done:
+                result = task.get()
+
+                if result is not None:
+                    # keyword = result["keyword"]
+                    pass
+                else:
+                    return Response(
+                        "bing_api error", status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                
+                response_data = task.get()
+
+                return Response(response_data, status=status.HTTP_200_OK)
+
+            # await asyncio.sleep(delay)
+
+        return Response(
+            status=status.HTTP_202_ACCEPTED,
+        )  # status code 수정
 
 #질문 생성 API
 class QuestionCreateView(APIView):
