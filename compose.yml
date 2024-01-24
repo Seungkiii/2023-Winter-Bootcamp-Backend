@@ -1,15 +1,15 @@
-version: '3'
+version: "3"
 
 services:
-  mysql:
-    container_name: mysql
-    image: mysql:latest
-    env_file:
-      - ./.env
-    networks:
-      - mynetwork
-    ports:
-      - 3306:3306
+  # mysql:
+  #   container_name: mysql
+  #   image: mysql:latest
+  #   env_file:
+  #     - ./.env
+  #   networks:
+  #     - mynetwork
+  #   ports:
+  #     - 3306:3306
 
   webapp:
     container_name: web_app
@@ -19,7 +19,7 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - mysql
+      # - mysql
       - rabbit
     networks:
       - mynetwork
