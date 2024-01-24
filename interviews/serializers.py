@@ -1,3 +1,4 @@
+import base64
 import requests
 from rest_framework import serializers
 from .models import Interview_Type, Question, Interview, Type_Choice, Answer, Repository
@@ -5,6 +6,7 @@ from .utils import create_questions_withgpt, save_question
 import openai
 import os
 from openai import OpenAI
+from common.encrypt_util import decrypt_token
 
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
@@ -90,7 +92,7 @@ class InterviewListSerializer(serializers.ModelSerializer):
   
   class Meta:
     model = Interview
-    fields = ['id', 'title']
+    fields = ['id', 'title', 'created_at']
 
 # 면접 생성 Serializer
 class InterviewCreateSerializer(serializers.ModelSerializer):
@@ -116,8 +118,10 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
       raise serializers.ValidationError("User must be provided")
     
     # User 테이블에서 access_token을 가져옴
-    access_token = user.access_token
-    if not access_token:
+    encoded_token = user.access_token
+    encrypted_token = base64.urlsafe_b64decode(encoded_token) # base64 디코딩
+    decrypted_token = decrypt_token(encrypted_token)  # access_token 복호화
+    if not decrypted_token:
       raise serializers.ValidationError("User does not have an access token")
 
     interview = Interview.objects.create(resume_id=resume_id, **validated_data)
@@ -129,7 +133,7 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
       username = user.username
       
       for repo_name in repo_names:
-        file_content = self.get_repo_file_content(username, repo_name, access_token)
+        file_content = self.get_repo_file_content(username, repo_name, decrypted_token)
         file_contents.extend(file_content)
         
     # repository에서 추출한 파일 내용을 gpt로 요약
