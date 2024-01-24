@@ -130,12 +130,13 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
       
       for repo_name in repo_names:
         file_content = self.get_repo_file_content(username, repo_name, access_token)
+        print(file_content)
         file_contents.extend(file_content)
         
     # repository에서 추출한 파일 내용을 gpt로 요약
     if file_contents:
-      prompt = f'{file_contents} 이 코드의 내용을 보고 어떤 기술을 사용했는지 요약해줘. 100자 이내로'
-      
+      prompt = f'{file_contents} Summarize the main technology stacks and major libraries of this code in English words. List them only in words.'
+
       response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             temperature=0.9,
@@ -159,13 +160,6 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
       for name in type_names:
         type_obj, created = Interview_Type.objects.get_or_create(type_name=name)
         Type_Choice.objects.create(interview=interview, interview_type=type_obj)
-
-    # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
-    # if repo_names and type_names and 'position' in validated_data and resume_id:
-    #   for repo_name in repo_names:
-    #     for type_name in type_names:
-    #       questions = create_questions_withgpt(repo_name, type_name, validated_data['position'], resume_id)
-    #       save_question(questions, interview)
 
     question="간단한 자기소개 부탁드립니다."
     Question.question_type="common"
@@ -234,9 +228,6 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         interview = validated_data['interview']
         type_name = validated_data['question_type']
 
-        # Interview 객체에서 type_names 가져오기
-        # type_names = [choice.interview_type.type_name for choice in Type_Choice.objects.filter(interview=interview)]
-        # print(type_names)
         questions = create_questions_withgpt(interview, type_name)
 
         # 생성된 Question 객체를 저장할 리스트
