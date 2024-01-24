@@ -165,13 +165,6 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
         type_obj, created = Interview_Type.objects.get_or_create(type_name=name)
         Type_Choice.objects.create(interview=interview, interview_type=type_obj)
 
-    # repo_name, type_name, position 중 하나라도 없으면 질문을 생성하지 않습니다.
-    # if repo_names and type_names and 'position' in validated_data and resume_id:
-    #   for repo_name in repo_names:
-    #     for type_name in type_names:
-    #       questions = create_questions_withgpt(repo_name, type_name, validated_data['position'], resume_id)
-    #       save_question(questions, interview)
-
     question="간단한 자기소개 부탁드립니다."
     Question.question_type="common"
     Question.objects.create(content=question, question_type=Question.question_type, interview=interview)
@@ -239,9 +232,6 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         interview = validated_data['interview']
         type_name = validated_data['question_type']
 
-        # Interview 객체에서 type_names 가져오기
-        # type_names = [choice.interview_type.type_name for choice in Type_Choice.objects.filter(interview=interview)]
-        # print(type_names)
         questions = create_questions_withgpt(interview, type_name)
 
         # 생성된 Question 객체를 저장할 리스트

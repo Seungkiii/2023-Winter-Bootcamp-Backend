@@ -28,7 +28,7 @@ client = OpenAI(api_key=api_key)
 def summary_gpt(text_contents):
     contents = text_contents
 
-    prompt=f"Your task is to generate a concise Korean summary of a developer's resume: {contents} with 200 character or less. The provided data is the extracted text from the resume. Your summary should highlight key information such as the candidate's skills, experiences, projects, and education, cs, personality. It should be clear, concise, and easy to understand. Also, try to identify and emphasize details that might make the candidate stand out from others."
+    prompt=f"Your task is to generate a concise Korean summary of a developer's resume: {contents} with 300 character or less. The provided data is the extracted text from the resume. Your summary should highlight key information such as the candidate's skills, experiences, projects, and education, cs, personality. It should be clear, concise, and easy to understand. Also, try to identify and emphasize details that might make the candidate stand out from others."
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         temperature=0,
@@ -118,7 +118,8 @@ class ResumeCreate(generics.CreateAPIView):
 class ResumeList(APIView):
     def get(self, request, format=None):
         user_id = request.user.id
-        resumes = Resume.objects.filter(user_id=user_id)
+        print(user_id)
+        resumes = Resume.objects.filter(user_id=user_id, is_deleted=False)
         serializer = ResumeSerializer(resumes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

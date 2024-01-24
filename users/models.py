@@ -28,6 +28,7 @@ class User(AbstractBaseUser, PermissionsMixin):
   html_url = models.URLField(max_length=500, null=True)
   repos_url = models.URLField(max_length=500, null=True)
   access_token = models.TextField(blank=True, null=True)
+
   
   created_at = models.DateTimeField(auto_now_add=True)
   updated_at = models.DateTimeField(auto_now=True)
