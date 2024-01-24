@@ -235,12 +235,17 @@ class InterviewListView(APIView):
     for interview in interviews:
         questions = Question.objects.filter(interview=interview)
         if not questions.exists():
+            interview.is_deleted = True  # 질문이 없으면 is_deleted를 true로 설정
+            interview.save()
             continue
         
         # 모든 question에 대한 answer이 있는지 확인
         all_answered = all(Answer.objects.filter(question=question).exists() for question in questions)
         if all_answered:    # 모든 question에 대한 answer이 있는 경우
             valid_interviews.append(interview)
+        else:
+            interview.is_deleted = True  # 모든 질문에 대한 답변이 없으면 is_deleted를 true로 설정
+            interview.save()
     
     serializer = InterviewListSerializer(valid_interviews, many=True)
       
