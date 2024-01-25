@@ -174,7 +174,7 @@ class InterviewCreateSerializer(serializers.ModelSerializer):
   # username과 repo_name을 이용해 파일 내용을 추출하는 함수
   def get_repo_file_content(self, username, repo_name, access_token):
     headers = {'Authorization': f'token {access_token}'}
-    search_url = f'https://api.github.com/search/code?q=filename:package.json+OR+filename:build.gradle+repo:{username}/{repo_name}'
+    search_url = f'https://api.github.com/search/code?q=filename:package.json+OR+filename:build.gradle+OR+filename:pom.xml+OR+filename:requirements.txt+OR+filename:Gemfile+OR+filename:packages.config+OR+filename:composer.json+OR+filename:go.mod+repo:{username}/{repo_name}'
     search_response = requests.get(search_url, headers=headers)
     if search_response.status_code == 200:
       items = search_response.json().get('items', [])
