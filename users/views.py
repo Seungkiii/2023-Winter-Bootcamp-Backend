@@ -86,7 +86,7 @@ class GithubCallbackView(APIView):
       
       login(request, user)
       print('LOGIN')
-      return redirect("http://localhost:3000")
+      return redirect("/")
     
     except GithubException as error:
       messages.error(request, error)
