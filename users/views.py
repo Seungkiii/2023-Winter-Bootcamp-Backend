@@ -90,11 +90,11 @@ class GithubCallbackView(APIView):
     
     except GithubException as error:
       messages.error(request, error)
-      return redirect("http://localhost:3000")
+      return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
     
     except SocialLoginException as error:
       messages.error(request, error)
-      return redirect("http://localhost:3000")
+      return Response({"error": str(error)}, status=status.HTTP_403_FORBIDDEN)
     
 # 로그아웃 API
 class LogoutView(APIView):
