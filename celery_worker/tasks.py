@@ -71,7 +71,6 @@ logger = logging.getLogger(__name__)
 #     finally:
 #         redis_client.decr(key)
 
-system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company."
 
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
@@ -96,24 +95,31 @@ def transcribe(audio_file):
         response_format="text"
     )
 
+    # transcript가 비어있는 경우 처리
+    if transcript.strip() <= 3:
+        return "올바른 답변 부탁드립니다."  # 기본값 설정
+
+    print(transcript)
     return transcript
 
-def generate_corrected_transcript(temperature, system_prompt, audio_file):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        temperature=temperature,
-        messages=[
-            {
-                "role": "system",
-                "content": system_prompt
-            },
-            {
-                "role": "user",
-                "content": transcribe(audio_file)
-            }
-        ]
-    )
-    return response.choices[0].message.content
+# system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company."
+
+# def generate_corrected_transcript(temperature, system_prompt, audio_file):
+#     response = client.chat.completions.create(
+#         model="gpt-3.5-turbo",
+#         temperature=temperature,
+#         messages=[
+#             {
+#                 "role": "system",
+#                 "content": system_prompt
+#             },
+#             {
+#                 "role": "user",
+#                 "content": transcribe(audio_file)
+#             }
+#         ]
+#     )
+#     return response.choices[0].message.content
 
 @app.task(bind=True)
 def process_interview(self, data, temp_file_path, is_last):
@@ -133,7 +139,7 @@ def process_interview(self, data, temp_file_path, is_last):
             if serializer.is_valid():
                 if temp_file:
                     # 음성 파일을 text로 변환
-                    content = generate_corrected_transcript(0, system_prompt, temp_file)[:500]
+                    content = transcribe(temp_file)[:500]
                     record_file.seek(0)
                     record_url, _ = handle_uploaded_file_s3(record_file)
 
