@@ -27,6 +27,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ORIGIN_WHITELIST = [
     'http://localhost:3000',
 ]
+CSRF_TRUSTED_ORIGINS = ['https://giterview.site']
 ALLOWED_HOSTS = ["backend", "localhost", "127.0.0.1", "giterview.site"]
 
 REST_FRAMEWORK = {
