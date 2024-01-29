@@ -96,8 +96,8 @@ def transcribe(audio_file):
     )
 
     # transcript가 비어있는 경우 처리
-    if transcript.strip() <= 3:
-        return "올바른 답변 부탁드립니다."  # 기본값 설정
+    if len(transcript.strip()) <= 3:
+        transcript = "올바른 답변 부탁드립니다."  # 기본값 설정
 
     print(transcript)
     return transcript
