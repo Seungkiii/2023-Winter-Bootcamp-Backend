@@ -2,6 +2,8 @@ import boto3
 from uuid import uuid4
 from botocore.exceptions import NoCredentialsError
 import openai
+from django.http import HttpResponse
+from rest_framework import status
 from rest_framework.response import Response
 from openai import OpenAI
 import os
@@ -53,10 +55,7 @@ def create_questions_withgpt(interview, type_names):
         # GPT 함수에 resume_contents를 전달합니다.
         # question_types = [qt.value for qt in QuestionType if qt.value in type_names]
         question_type = type_names
-        print("-------------")
-        print(type_names)
-        print(question_type)
-        print("------------")
+
         # Repository 테이블에서 interview_id에 해당하는 레코드를 가져옵니다.
         repository = Repository.objects.filter(interview=interview.id)
 
@@ -69,11 +68,12 @@ def create_questions_withgpt(interview, type_names):
             repo_names.append(repo_name)
             repo_infos.append(repo_info)
 
+
         previous_question = Question.objects.filter(interview=interview.id).order_by('-id').first()
         previous_answer = Answer.objects.filter(question=previous_question.id).first()
 
         position = interview.position
-        print(position)
+
         questions = []
 
         previous_question_type = previous_question.question_type
@@ -86,12 +86,12 @@ def create_questions_withgpt(interview, type_names):
             if question_type == "project":
                 print("project")
                 #프로젝트 질문
-                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {repo_names}:{repo_infos} and {resume_contents}, {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. You can create new contents of question or tail questions that deepen and apply previous answer: {previous_answer}. The tail questions that deepen and apply previous answer should be unique and not repeat previous questions. They should explore different aspects of the candidate's experience, skills, and understanding of the project. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {', '.join(repo_names)}:{', '.join(repo_infos)} and {resume_contents}, {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. If you think the previous answer:{previous_answer.content}: is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail questions that deepen and apply previous answer should be unique and not repeat previous questions and should explore different aspects of the candidate's experience, skills, and understanding of the project. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
 
             elif question_type == "cs":
                 print("cs")
                 #cs질문
-                prompt = f"You're participating as both the company's HR representative and the interviewer. Your task is to ask one interview question in Korean within the limit of 200 characters. If you think the previous answer:{previous_answer.content} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail question should continue naturally from the situation in the previous answer: {previous_answer.content}, and must present a new problem situation that differs from the previous question. Questions should be direct and natural, and proposes a specific and extreme situation. This situation should be something that could realistically occur within the {position} role, and it should test the candidate's teamwork skills, problem-solving abilities, and character under stress. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+                prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. The question should be about the specific concept, understanding, operation, and implementation of a single topic among Data Structures and Algorithms, Operating Systems, Networks, Databases, System Design, Software Engineering, Programming Language, etc. If you think the previous answer:{previous_answer.content}: is okay, make a tail question and if not, make a new one with a different content than the previous one. tail questions that deepen and apply previous answer: {previous_answer.content} should be unique and not repeat previous questions and should propose a specific problem or situation that tests the candidate's problem-solving skills and understanding of the topic. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name."
 
             else:
                 print("person")
@@ -101,11 +101,11 @@ def create_questions_withgpt(interview, type_names):
         else:
             # 전 질문타임과 다르거나 두번째 질문이라면 꼬리질문 불가능
             print("different")
-            print(question_type.id)
+
             if question_type == "project":
                 print("project")
                 # 프로젝트 질문
-                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {repo_names}:{repo_infos} and {resume_contents}, and should be relevant to the {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question. and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {', '.join(repo_names)}:{', '.join(repo_infos)} and {resume_contents},  {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question. and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
 
             elif question_type == "cs":
                 print("cs")
@@ -132,7 +132,7 @@ def create_questions_withgpt(interview, type_names):
                 },
                 {
                     "role": "user",
-                    "content": f"I want you to ask me a only one type developer interview question. Instead, do not tell your thoughts, intentions, greetings, and conditions to me. Ask a different question from {previous_question}. do not tell me the number of characters"
+                    "content": f"I want you to ask me a only one type developer interview question. Instead do not tell me the number of characters"
                 }
 
             ]

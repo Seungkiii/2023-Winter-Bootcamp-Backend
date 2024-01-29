@@ -46,7 +46,7 @@ def transcribe(audio_file):
     return transcript
   
 # 프롬프팅
-system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company."
+system_prompt = "Your task is to correct any spelling discrepancies in the transcribed Korean text. It's about an interview with a development company. Show me the translated Korean only, not English"
 
 # GPT를 이용해 텍스트를 후처리해주는 함수
 def generate_corrected_transcript(temperature, system_prompt, audio_file):
