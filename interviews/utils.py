@@ -96,7 +96,7 @@ def create_questions_withgpt(interview, type_names):
             elif question_type == "cs":
                 print("cs")
                 #cs질문
-                prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. The question should be about the specific concept, understanding, operation, and implementation of a single topic among Data Structures and Algorithms, Operating Systems, Networks, Databases, System Design, Software Engineering, Programming Language, etc. If you think the previous answer:{previous_answer.content}: is okay, make a tail question and if not, make a new one with a different content than the previous one. tail questions that deepen and apply previous answer: {previous_answer.content} should be unique and not repeat previous questions and should propose a specific problem or situation that tests the candidate's problem-solving skills and understanding of the topic. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name."
+                prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. If you think the previous answer:{previous_answer} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail question should continue naturally from the situation in the previous answer: {previous_answer}, and must present a new problem situation that differs from the previous question. Questions should be direct and natural, and proposes a specific and extreme situation. This situation should be something that could realistically occur within the {position} role. The question should be about the specific concept, understanding, operation, and implementation of a single topic among Data Structures and Algorithms, Operating Systems, Networks, Databases, System Design, Software Engineering, Programming Language, etc. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name."
 
             else:
                 print("person")
@@ -137,7 +137,7 @@ def create_questions_withgpt(interview, type_names):
                 },
                 {
                     "role": "user",
-                    "content": f"I want you to ask me a only one type developer interview question. Instead do not tell me the number of characters"
+                    "content": f"I want you to ask me a only one type developer interview question. Instead do not tell me the number of characters. Don't mention the my answer as it is"
                 }
 
             ]
