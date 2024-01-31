@@ -68,6 +68,12 @@ def create_questions_withgpt(interview, type_names):
             repo_names.append(repo_name)
             repo_infos.append(repo_info)
 
+        if len(repo_infos) == 1:
+            formatted_info = repo_infos[0].replace('\n', '')
+            formatted_name = repo_names[0].replace('\n', '')
+        else:
+            formatted_info = ", ".join(repo_infos).replace('\n', '')
+            formatted_name = ", ".join(repo_names).replace('\n', '')
 
         previous_question = Question.objects.filter(interview=interview.id).order_by('-id').first()
         previous_answer = Answer.objects.filter(question=previous_question.id).first()
@@ -79,14 +85,13 @@ def create_questions_withgpt(interview, type_names):
         previous_question_type = previous_question.question_type
         # 현재 질문타입 꺼내기
 
-
         if(previous_question_type == question_type):
             print("same")
             # 전 질문타입과 같다면 꼬리질문 가능
             if question_type == "project":
                 print("project")
                 #프로젝트 질문
-                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {', '.join(repo_names)}:{', '.join(repo_infos)} and {resume_contents}, {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. If you think the previous answer:{previous_answer.content}: is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail questions that deepen and apply previous answer should be unique and not repeat previous questions and should explore different aspects of the candidate's experience, skills, and understanding of the project. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. Question related to the candidate's project experience such as project overview, difficulties and solutions, lessons learned, roles, implemented features should be based on the GitHub-{repo_info} and resume-{resume_contents}. If you think the previous answer:{previous_answer} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail questions that deepen and apply previous answer:{previous_answer} should be unique and not repeat previous questions. They should explore different aspects of the candidate's experience, skills, and understanding of the project. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
 
             elif question_type == "cs":
                 print("cs")
@@ -105,7 +110,7 @@ def create_questions_withgpt(interview, type_names):
             if question_type == "project":
                 print("project")
                 # 프로젝트 질문
-                prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. The question should be based on the {', '.join(repo_names)}:{', '.join(repo_infos)} and {resume_contents},  {position} to find out one of somethings like candidate's project overview, technical details, challenges, achievements and results, improvements and lessons learned etc. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question. and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+                prompt = f"You're participating as developer interviewer. Your task is to ask one developer project-question in Korean, within the limit of 200 characters. Question related to the candidate's project experience such as project overview, difficulties and solutions, lessons learned, roles, implemented features should be based on the GitHub-{repo_info} and resume-{resume_contents}. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question. and use the word '지원자분' instead of name."
 
             elif question_type == "cs":
                 print("cs")
@@ -119,7 +124,7 @@ def create_questions_withgpt(interview, type_names):
                 prompt = f"You're participating as both the company's HR representative and the interviewer. Your task is to ask one interview question that proposes a specific and extreme situation in Korean within the limit of 200 characters. This situation should be something that could realistically occur within the {position} role, and it should test the candidate's teamwork skills, problem-solving abilities, and character under stress. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. Do not say anything outside of the question and refer to the candidate as '지원자분' instead of using their name. The output should not include any additional information or counters such as the character count of the question."
 
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4-1106-preview",
             temperature=0.5,
             frequency_penalty=1,
             presence_penalty=-1,
