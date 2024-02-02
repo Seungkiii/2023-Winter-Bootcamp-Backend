@@ -44,10 +44,10 @@ def summary_gpt(text_contents):
 
     return response.choices[0].message.content.strip()
 
-class ResumeCreate(generics.CreateAPIView):
+class ResumeView(generics.ListCreateAPIView):
     queryset = Resume.objects.all()
     serializer_class = ResumeSerializer
-    http_method_names = ['post']
+    http_method_names = ['post', 'get']
 
     @swagger_auto_schema(operation_description="이력서를 생성하고 PDF 파일을 업로드합니다.",
                          request_body=openapi.Schema(
@@ -104,6 +104,13 @@ class ResumeCreate(generics.CreateAPIView):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    #이력서 리스트 보여주는 뷰
+    def get(self, request, format=None):
+        user_id = request.user.id
+        print(user_id)
+        resumes = Resume.objects.filter(user_id=user_id, is_deleted=False)
+        serializer = ResumeSerializer(resumes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 #이력서 리스트 보여주는 뷰
 # class ResumeList(generics.ListAPIView):
@@ -115,17 +122,13 @@ class ResumeCreate(generics.CreateAPIView):
 #     def get(self, request, *args, **kwargs):
 #
 #         return super().get(request, *args, **kwargs)
-class ResumeList(APIView):
-    def get(self, request, format=None):
-        user_id = request.user.id
-        print(user_id)
-        resumes = Resume.objects.filter(user_id=user_id, is_deleted=False)
-        serializer = ResumeSerializer(resumes, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-
+# class ResumeList(APIView):
+#     def get(self, request, format=None):
+#         user_id = request.user.id
+#         print(user_id)
+#         resumes = Resume.objects.filter(user_id=user_id, is_deleted=False)
+#         serializer = ResumeSerializer(resumes, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class EmptySerializer(serializers.Serializer):
     pass
