@@ -21,6 +21,9 @@ from django.urls import include, path
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from interviews.views import InterviewView
+from resumes.views import ResumeView
+from users.views import UserView
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -38,9 +41,14 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    path("api/interviews", InterviewView.as_view(), name='interview-view'),
     path("api/interviews/", include("interviews.urls")),
+    path("api/resumes", ResumeView.as_view(), name='resume-view'),
     path("api/resumes/", include("resumes.urls")),
+    path("api/users", UserView.as_view(), name='user-view'),
     path("api/users/", include("users.urls")),
+
     path("", include("django_prometheus.urls")),
 ]
 

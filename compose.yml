@@ -1,21 +1,21 @@
 version: "3"
 
 services:
-  # mysql:
-  #   container_name: mysql
-  #   image: mysql:latest
-  #   env_file:
-  #     - ./.env
-  #   networks:
-  #     - mynetwork
-  #   ports:
-  #     - 3306:3306
+  mysql:
+    container_name: mysql
+    image: mysql:latest
+    env_file:
+      - ./.env
+    networks:
+      - mynetwork
+    ports:
+      - 3306:3306
 
   webapp:
     container_name: web_app
     build: .
     restart: always
-    command: sh -c "python manage.py makemigrations && python manage.py migrate && test -d static || mkdir static && python manage.py collectstatic --noinput && gunicorn 'giterview.wsgi:application' --bind=0.0.0.0:8000 --reload"
+    command: sh -c "python manage.py migrate && test -d static || mkdir static && python manage.py collectstatic --noinput && gunicorn -w 1 -k uvicorn.workers.UvicornWorker 'giterview.asgi:application' --bind=0.0.0.0:8000 --reload"
     ports:
       - 8000:8000
     depends_on:
@@ -50,8 +50,9 @@ services:
     networks:
       - mynetwork
     volumes:
-      - ./celery_worker:/usr/src/app/celery_worker
+     # - ./celery_worker:/usr/src/app/celery_worker
       - shared_volume:/tmp
+      - ./:/usr/src/app
 
   redis:
     container_name: redis
