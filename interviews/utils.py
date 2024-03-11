@@ -91,16 +91,20 @@ def create_questions_withgpt(interview, type_names):
             if question_type == "project":
                 print("project")
                 #프로젝트 질문
+
                 prompt = f"Your task is to role-play as a developer interviewer and ask a project-related interview question in Korean, within the limit of 200 characters. Question related to the candidate's project experience such as project overview, difficulties and solutions, lessons learned, roles, implemented features should be based on the GitHub-{formatted_info} and resume-{resume_contents}. If you think the previous answer:{previous_answer} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail questions that deepen and apply previous answer:{previous_answer} should be unique and not repeat previous questions. They should explore different aspects of the candidate's experience, skills, and understanding of the project. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
+
 
             elif question_type == "cs":
                 print("cs")
                 #cs질문
+
                 prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. If you think the previous answer:{previous_answer} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail question should continue naturally from the situation in the previous answer: {previous_answer}, and must present a new problem situation that differs from the previous question. Questions should be direct and natural, and proposes a specific and extreme situation. This situation should be something that could realistically occur within the {position} role. The question should be about the specific concept, understanding, operation, and implementation of a single topic among Data Structures and Algorithms, Operating Systems, Networks, Databases, System Design, Software Engineering, Programming Language, etc. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name."
 
             else:
                 print("person")
                 #인성질문
+
                 prompt = f"You're participating as both the company's HR representative and the interviewer. Your task is to ask one interview question in Korean within the limit of 200 characters. If you think the previous answer:{previous_answer.content} is okay, make a tail question and if not, make a new one with a different content than the previous one. The tail question should continue naturally from the situation in the previous answer: {previous_answer.content}, and must present a new problem situation that differs from the previous question. Questions should be direct and natural, and proposes a specific and extreme situation. This situation should be something that could realistically occur within the {position} role, and it should test the candidate's teamwork skills, problem-solving abilities, and character under stress. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
 
         else:
@@ -110,18 +114,23 @@ def create_questions_withgpt(interview, type_names):
             if question_type == "project":
                 print("project")
                 # 프로젝트 질문
-                prompt = f"You're participating as developer interviewer. Your task is to ask one developer project-question in Korean, within the limit of 200 characters. Question related to the candidate's project experience such as project overview, difficulties and solutions, lessons learned, roles, implemented features should be based on the GitHub-{formatted_info} and resume-{resume_contents}. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question. and use the word '지원자분' instead of name."
+
+            prompt = f"Your task is to role-play as a developer interviewer and analyze the applicant's submissions {', '.join(repo_names)}:{', '.join(repo_infos)}', and {resume_contents} to provide Korean interview questions in 200 characters or less for projects that fit the applicant's {position}. The questions should be questions that can evaluate the applicant's skills, learning abilities, etc... Also, do not say anything other than a question and use the word 'applicant' instead of your name. Do not include any character counts or additional information counters in the output."
 
             elif question_type == "cs":
                 print("cs")
                 # cs질문
+
                 #prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. The question should be based on the {', '.join(repo_names)}:{', '.join(repo_infos)}, {resume_contents}, and {position}, and should be related to computer science topics such as Data Structures and Algorithms,Operating Systems,Networks,Databases,System Design,Software Engineering,Specific Technology Stacks. Questions should be direct and natural. The question should sound like a real person is asking but refrain from including greetings or personal sentiments, intention, emotion. do not say anything outside of the question and use the word '지원자분' instead of name. The output should not include any additional information or counters such as the character count of the question"
                 prompt = f"Your task is to role-play as a company's CS expert and interviewer. Ask a natural and flowing question in Korean, within the limit of 200 characters. The question should be about the specific concept, understanding, operation, and implementation of a single topic among Data Structures and Algorithms, Operating Systems, Networks, Databases, System Design, Software Engineering, Programming Language, etc and based on {position}. Questions should be direct and natural. The question should sound like a real person is asking but refrain from including greetings or personal sentiments, intention, emotion. Do not say anything outside of the question and use the word '지원자분' instead of name."
+
 
             else:
                 print("person")
                 # 인성질문
+
                 prompt = f"You're participating as both the company's HR representative and the interviewer. Your task is to ask one interview question that proposes a specific and extreme situation in Korean within the limit of 200 characters. This situation should be something that could realistically occur within the {position} role, and it should test the candidate's teamwork skills, problem-solving abilities, and character under stress. Questions should be direct and natural. It should sound like a real person is asking the question but refrain from including greetings or personal sentiments, intention, emotion. Do not say anything outside of the question and refer to the candidate as '지원자분' instead of using their name. The output should not include any additional information or counters such as the character count of the question."
+
 
         response = client.chat.completions.create(
             model="gpt-4-1106-preview",
